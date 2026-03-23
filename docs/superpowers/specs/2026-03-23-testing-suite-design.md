@@ -105,6 +105,8 @@ export async function runSemanticEmbeddingWorker(
 
 Command `execute` functions accept an optional `deps` parameter that defaults to real implementations. Tests pass fakes.
 
+**Rate limiter strategy:** `isRateLimited` is a pure, stateful function with no external dependencies — it is already unit-tested via `rateLimiter.test.ts`. In component tests for handlers that use it, we use `vi.mock('../utils/rateLimiter.js')` to control its return value. This is the one module-level mock we allow; it is justified because `isRateLimited` is a cross-cutting concern (used identically in every handler) and injecting it via `deps` in every handler would add boilerplate with no design benefit. All other dependencies (AI, Redis, DB) are injected via `deps`.
+
 ```typescript
 // Example: src/commands/recall.ts
 interface RecallDeps {
@@ -123,7 +125,34 @@ export async function execute(
 ) { ... }
 ```
 
-Same pattern for `messageCreate.ts` (needs `ai: IAIProvider` and a Redis-shaped object). Stub commands (`ask`, `summarize`, `lore`, `settings`, `profile`) don't need this yet — the pattern is applied when their implementations are filled in.
+Same pattern for `messageCreate.ts`:
+
+```typescript
+// src/events/messageCreate.ts
+interface MessageCreateDeps {
+  ai: IAIProvider;
+  redis: {
+    rPush: (key: string, value: string) => Promise<number>;
+    lTrim: (key: string, start: number, stop: number) => Promise<string>;
+    lRange: (key: string, start: number, stop: number) => Promise<string[]>;
+    set: (key: string, value: string) => Promise<string | null>;
+  };
+}
+
+const defaultDeps: MessageCreateDeps = {
+  ai: new GeminiProvider(),
+  redis: redisClient,
+};
+
+export async function execute(
+  message: Message,
+  deps: MessageCreateDeps = defaultDeps
+) { ... }
+```
+
+The `execute` function uses `deps.redis` instead of importing `redisClient` directly, and `deps.ai` instead of a module-scoped `new GeminiProvider()`. Tests pass fakes via the `deps` parameter; production callers pass nothing (defaults kick in).
+
+Stub commands (`ask`, `summarize`, `lore`, `settings`, `profile`) don't need this yet — the pattern is applied when their implementations are filled in.
 
 The `interactionCreate.ts` dispatcher already calls `command.execute(interaction)` — it does not need to know about the extra parameter.
 
@@ -261,10 +290,14 @@ export function createMockDb() {
 ### Layer 3 — Integration Tests
 
 **`integration/db.integration.test.ts`** (requires `TEST_DATABASE_URL`)
-- Apply schema, insert test vector, query via `searchSimilarMemory`, verify cosine similarity ordering
+
+Setup: a `globalSetup` file validates `TEST_DATABASE_URL` is set (fails fast with a clear message if not). A `beforeAll` in the test file connects to the test database and applies `src/db/schema.sql` via `pool.query()` (idempotent — uses `CREATE TABLE IF NOT EXISTS` and `CREATE EXTENSION IF NOT EXISTS`). The test database is assumed to be an empty, pre-provisioned Postgres instance with superuser or `CREATE EXTENSION` privileges (pgvector must be installable). Tests do NOT create or drop the database itself.
+
+- Insert test vector, query via `searchSimilarMemory`, verify cosine similarity ordering
 - Server isolation: vector from server A not returned for server B
 - Channel isolation: vector from channel X not returned for channel Y
-- Cleanup after each test
+- `afterEach`: delete test rows by a known test prefix in `server_id` (e.g., `test-server-*`)
+- `afterAll`: leave tables in place — `IF NOT EXISTS` makes re-runs idempotent, avoiding permission issues with `DROP`
 
 ## Vitest Configuration
 
@@ -289,8 +322,23 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/tests/integration/**/*.integration.test.ts'],
+    globalSetup: ['src/tests/integration/globalSetup.ts'],
   },
 });
+```
+
+The `globalSetup.ts` file validates `TEST_DATABASE_URL` at suite start and fails fast with a clear message if it is missing or unreachable:
+
+```typescript
+// src/tests/integration/globalSetup.ts
+export async function setup() {
+  if (!process.env.TEST_DATABASE_URL) {
+    throw new Error(
+      'TEST_DATABASE_URL is required for integration tests. ' +
+      'Provide a PostgreSQL connection string with pgvector enabled.'
+    );
+  }
+}
 ```
 
 **npm scripts:**
