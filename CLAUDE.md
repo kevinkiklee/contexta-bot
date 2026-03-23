@@ -15,7 +15,13 @@ npm run build
 npm start
 ```
 
-There are no tests configured in this project.
+## Testing
+
+- `npm test` — runs unit + component tests (Vitest)
+- `npm run test:watch` — watch mode
+- `npm run test:integration` — integration tests (requires `TEST_DATABASE_URL` with pgvector)
+- Test files live in `src/tests/{unit,component,integration}/`
+- Shared helpers in `src/tests/helpers/`
 
 ## Environment Variables
 
