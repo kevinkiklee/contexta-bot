@@ -40,7 +40,9 @@ export async function execute(message: Message) {
 
     // 3. Call the Gemini Provider
     try {
-      await message.channel.sendTyping();
+      if ('sendTyping' in message.channel) {
+        await message.channel.sendTyping();
+      }
       
       const systemPrompt = `You are Contexta, an intelligent AI co-host for this Discord server. Provide helpful and concise responses. Do not prefix your own messages with [System/Contexta] as Discord formats it natively.`;
       
