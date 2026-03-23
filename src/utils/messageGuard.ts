@@ -2,7 +2,7 @@
 const ROLE_PREFIX_RE = /^\[(?:System\/Contexta|User:[^\]]*)\]:\s*/im;
 
 export function sanitizeDisplayName(name: string): string {
-  return name.replace(/[\[\]\/]/g, '');
+  return name.replace(/[\[\]]/g, '');
 }
 
 export function sanitizeMessageContent(content: string): string {

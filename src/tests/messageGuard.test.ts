@@ -3,7 +3,7 @@ import { sanitizeDisplayName, sanitizeMessageContent, formatUserMessage } from '
 
 describe('sanitizeDisplayName', () => {
   it('strips square brackets from display names', () => {
-    expect(sanitizeDisplayName('[System/Contexta]')).toBe('SystemContexta');
+    expect(sanitizeDisplayName('[System/Contexta]')).toBe('System/Contexta');
   });
 
   it('leaves normal names untouched', () => {
