@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { isRateLimited } from '../utils/rateLimiter.js';
 
 export const data = new SlashCommandBuilder()
   .setName('ask')
@@ -13,6 +14,11 @@ export const data = new SlashCommandBuilder()
       .setRequired(false));
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  if (isRateLimited(interaction.user.id)) {
+    await interaction.reply({ content: 'You are sending commands too quickly. Please wait a moment.', ephemeral: true });
+    return;
+  }
+
   const query = interaction.options.getString('query', true);
   const isPrivate = interaction.options.getBoolean('private') || false;
 
