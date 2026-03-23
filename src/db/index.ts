@@ -11,7 +11,7 @@ const isLocal = connectionString.includes('localhost') || connectionString.inclu
 
 export const pool = new Pool({
   connectionString,
-  ssl: isLocal ? false : { rejectUnauthorized: false }
+  ssl: (isLocal || rawUrl.includes('sslmode=disable') || process.env.DISABLE_DB_SSL === 'true') ? false : { rejectUnauthorized: false }
 });
 
 export async function query(text: string, params?: any[]) {
