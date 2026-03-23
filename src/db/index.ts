@@ -13,7 +13,9 @@ const rawUrl = process.env.DATABASE_URL || '';
 const sslmodeMatch = rawUrl.match(/[?&]sslmode=([^&]+)/);
 const sslmode = sslmodeMatch?.[1];
 
-// pg does not understand sslmode as a query param — strip it for the connection string.
+// pg parses sslmode from the connection string query params and uses it to configure SSL,
+// which would conflict with our explicit `ssl` object. Strip the query string so our
+// ssl config is the sole authority.
 const connectionString = rawUrl.split('?')[0];
 
 const isLocal =
