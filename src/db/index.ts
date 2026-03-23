@@ -6,31 +6,46 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const rawUrl = process.env.DATABASE_URL || '';
+/**
+ * Derives PostgreSQL `Pool` connection string and SSL options from a DATABASE_URL-style value.
+ *
+ * Parses `sslmode` from the query string **before** stripping it, so an explicit
+ * `sslmode=disable` is still honoured rather than silently lost.
+ *
+ * The query string is removed from the connection string because `pg` would otherwise
+ * interpret `sslmode` and conflict with our explicit `ssl` option — our `ssl` config is
+ * the sole authority.
+ *
+ * For non-local URLs without `sslmode=disable`, TLS is enabled with
+ * `rejectUnauthorized: true` (verify the server certificate in production). Use
+ * localhost/127.0.0.1, `sslmode=disable`, or `DISABLE_DB_SSL=true` for local dev.
+ */
+export function parseDbConfig(
+  rawUrl: string,
+  disableSslEnv?: string
+): {
+  connectionString: string;
+  ssl: false | { rejectUnauthorized: true };
+} {
+  const sslmodeMatch = rawUrl.match(/[?&]sslmode=([^&]+)/);
+  const sslmode = sslmodeMatch?.[1];
+  const connectionString = rawUrl.split('?')[0];
+  const isLocal =
+    connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+  const disableSSL =
+    isLocal || sslmode === 'disable' || disableSslEnv === 'true';
+  return {
+    connectionString,
+    ssl: disableSSL ? false : { rejectUnauthorized: true },
+  };
+}
 
-// Parse sslmode from query string BEFORE stripping it, so an explicit
-// sslmode=disable is still honoured rather than silently lost.
-const sslmodeMatch = rawUrl.match(/[?&]sslmode=([^&]+)/);
-const sslmode = sslmodeMatch?.[1];
-
-// pg parses sslmode from the connection string query params and uses it to configure SSL,
-// which would conflict with our explicit `ssl` object. Strip the query string so our
-// ssl config is the sole authority.
-const connectionString = rawUrl.split('?')[0];
-
-const isLocal =
-  connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
-
-const disableSSL =
-  isLocal ||
-  sslmode === 'disable' ||
-  process.env.DISABLE_DB_SSL === 'true';
+const config = parseDbConfig(process.env.DATABASE_URL || '', process.env.DISABLE_DB_SSL);
 
 export const pool = new Pool({
-  connectionString,
-  // Fix #5: rejectUnauthorized: true — verify the server's certificate in production.
-  // Set DATABASE_URL with sslmode=disable or DISABLE_DB_SSL=true for local dev.
-  ssl: disableSSL ? false : { rejectUnauthorized: true },
+  connectionString: config.connectionString,
+  // Fix #5: rejectUnauthorized: true — enforced via parseDbConfig for production URLs.
+  ssl: config.ssl,
 });
 
 export async function query(text: string, params?: any[]) {
