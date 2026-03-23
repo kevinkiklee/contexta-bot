@@ -41,6 +41,8 @@ export async function execute(message: Message) {
     const history = await redisClient.lRange(redisKey, 0, -1);
 
     const chatHistory = history.map(msg => ({
+      // Safe because formatUserMessage() always wraps user turns in '[User: ...]', making
+      // '[System/Contexta]' an exclusive prefix for bot-written turns only.
       role: msg.startsWith('[System/Contexta]') ? 'model' as const : 'user' as const,
       parts: [{ text: msg }]
     }));
