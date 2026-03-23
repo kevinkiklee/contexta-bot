@@ -17,6 +17,11 @@ export const data = new SlashCommandBuilder()
       .setRequired(false));
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+    return;
+  }
+
   // Fix #3: rate limit per user
   if (isRateLimited(interaction.user.id)) {
     await interaction.reply({ content: 'You are sending commands too quickly. Please wait a moment.', ephemeral: true });
@@ -27,5 +32,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
 
   await interaction.deferReply();
+  // TODO: fetch message history and summarize via AI provider
   await interaction.editReply(`Summarizing the last ${hours} hours in ${targetChannel}...`);
 }
