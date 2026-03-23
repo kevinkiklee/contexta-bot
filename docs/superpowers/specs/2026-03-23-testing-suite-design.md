@@ -327,7 +327,7 @@ export default defineConfig({
 });
 ```
 
-The `globalSetup.ts` file validates `TEST_DATABASE_URL` at suite start and fails fast with a clear message if it is missing or unreachable:
+The `globalSetup.ts` file validates `TEST_DATABASE_URL` at suite start and fails fast with a clear message if it is missing:
 
 ```typescript
 // src/tests/integration/globalSetup.ts
