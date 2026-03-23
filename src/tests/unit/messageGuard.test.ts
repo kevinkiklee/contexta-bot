@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeDisplayName, sanitizeMessageContent, formatUserMessage } from '../utils/messageGuard.js';
+import { sanitizeDisplayName, sanitizeMessageContent, formatUserMessage } from '../../utils/messageGuard.js';
 
 describe('sanitizeDisplayName', () => {
   it('strips square brackets from display names', () => {

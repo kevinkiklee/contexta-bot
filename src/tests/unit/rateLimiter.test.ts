@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { isRateLimited, clearRateLimitState } from '../utils/rateLimiter.js';
+import { isRateLimited, clearRateLimitState } from '../../utils/rateLimiter.js';
 
 beforeEach(() => {
   clearRateLimitState();
