@@ -1,35 +1,44 @@
+// src/commands/recall.ts
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { GeminiProvider } from '../llm/GeminiProvider.js';
 import { searchSimilarMemory } from '../db/index.js';
+import { isRateLimited } from '../utils/rateLimiter.js';
 
 const aiProvider = new GeminiProvider();
 
 export const data = new SlashCommandBuilder()
   .setName('recall')
   .setDescription('Triggers a semantic search of the pgvector database.')
-  .addStringOption(option => 
+  .addStringOption(option =>
     option.setName('topic')
       .setDescription('The past event or topic you want to remember')
       .setRequired(true));
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  // Fix #7: guard against DM context where guildId is null
+  if (!interaction.guildId) {
+    await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+    return;
+  }
+
+  // Fix #3: rate limit slash commands per user
+  if (isRateLimited(interaction.user.id)) {
+    await interaction.reply({ content: 'You are sending commands too quickly. Please wait a moment.', ephemeral: true });
+    return;
+  }
+
   const topic = interaction.options.getString('topic', true);
   await interaction.deferReply();
-  
+
   try {
-    // Generate an embedding for the user's recall query
     const embedding = await aiProvider.generateEmbedding(topic);
-    
-    // Search the pgvector database for similar channel memories
-    const results = await searchSimilarMemory(interaction.guildId || '', interaction.channelId, embedding, 3);
-    
+    const results = await searchSimilarMemory(interaction.guildId, interaction.channelId, embedding, 3);
+
     if (results.length === 0) {
       await interaction.editReply("I couldn't find any relevant memories regarding that topic.");
       return;
     }
-    
-    // In production, we'd pass these retrieved RAG memories to Gemini 
-    // again to formulate an organic answer integrating the context.
+
     await interaction.editReply(`I found ${results.length} related memory chunks. Contexta is analyzing them...`);
   } catch (err) {
     console.error('[recall] Error querying semantic memory:', err);
