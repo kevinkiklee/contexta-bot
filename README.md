@@ -47,7 +47,6 @@ To run this bot, you will need:
    - `GEMINI_API_KEY`: Your Google Gemini API key.
    - `DATABASE_URL`: Connection string for your PostgreSQL database.
    - `REDIS_URL`: Connection string for your Redis instance.
-   - `DEFAULT_SERVER_ID`: Discord Server ID for background optimization tasks.
 
 ## Usage
 
