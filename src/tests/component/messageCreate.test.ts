@@ -100,6 +100,7 @@ describe('messageCreate handler', () => {
     await execute(message, { ai, redis, processAttachments: attachmentProcessor.processAttachments });
     expect(message.react).toHaveBeenCalledWith('⏳');
     expect(ai.generateChatResponse).not.toHaveBeenCalled();
+    expect(redis.rPush).not.toHaveBeenCalled();
   });
 
   it('replies with error and does not store on AI failure', async () => {
@@ -263,5 +264,27 @@ describe('messageCreate handler', () => {
 
     const chatHistory = vi.mocked(ai.generateChatResponse).mock.calls[0][1];
     expect(chatHistory[0].parts[0].text).toContain('[Attachment: error.png');
+  });
+
+  it('skips Redis write entirely when user is rate limited (non-mention)', async () => {
+    mockIsRateLimited.mockReturnValue(true);
+    const message = createMockMessage(); // no bot mention
+
+    await execute(message, { ai, redis, processAttachments: attachmentProcessor.processAttachments });
+
+    expect(redis.rPush).not.toHaveBeenCalled();
+    expect(message.react).not.toHaveBeenCalled(); // no reaction for non-mention
+  });
+
+  it('reacts with hourglass and skips Redis write when rate limited on mention', async () => {
+    mockIsRateLimited.mockReturnValue(true);
+    const message = createMockMessage({
+      mentions: { has: vi.fn().mockReturnValue(true) },
+    });
+
+    await execute(message, { ai, redis, processAttachments: attachmentProcessor.processAttachments });
+
+    expect(redis.rPush).not.toHaveBeenCalled();
+    expect(message.react).toHaveBeenCalledWith('⏳');
   });
 });

@@ -36,6 +36,14 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
   if (!serverId) return;
 
+  // Rate limit check BEFORE any Redis writes
+  if (isRateLimited(message.author.id)) {
+    if (message.mentions.has(message.client.user.id)) {
+      await message.react('⏳').catch(() => {});
+    }
+    return;
+  }
+
   const displayName = message.member?.displayName || message.author.username;
   let formattedMessage = formatUserMessage(displayName, message.content);
 
@@ -58,11 +66,6 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
   await deps.redis.set(`channel:${channelId}:server`, serverId);
 
   if (message.mentions.has(message.client.user.id)) {
-    if (isRateLimited(message.author.id)) {
-      await message.react('⏳').catch(() => {});
-      return;
-    }
-
     const history = await deps.redis.lRange(redisKey, 0, -1);
 
     const chatHistory = history.map(msg => ({
