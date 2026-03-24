@@ -2,7 +2,7 @@
 import { Message, Events } from 'discord.js';
 import { redisClient } from '../utils/redis.js';
 import { GeminiProvider } from '../llm/GeminiProvider.js';
-import { formatUserMessage } from '../utils/messageGuard.js';
+import { BOT_SENTINEL, sanitizeMessageContent, formatUserMessage } from '../utils/messageGuard.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import type { IAIProvider } from '../llm/IAIProvider.js';
 import { processAttachments } from '../services/attachmentProcessor.js';
@@ -48,7 +48,7 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
     }));
     const descriptions = await deps.processAttachments(deps.ai, attachmentInfos);
     if (descriptions) {
-      formattedMessage += ' ' + descriptions;
+      formattedMessage += ' ' + sanitizeMessageContent(descriptions);
     }
   }
 
@@ -66,7 +66,7 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
     const history = await deps.redis.lRange(redisKey, 0, -1);
 
     const chatHistory = history.map(msg => ({
-      role: msg.startsWith('[System/Contexta]') ? 'model' as const : 'user' as const,
+      role: msg.startsWith(BOT_SENTINEL) ? 'model' as const : 'user' as const,
       parts: [{ text: msg }]
     }));
 
@@ -85,7 +85,7 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
       await message.reply(response);
 
-      const botFormattedMsg = `[System/Contexta]: ${response}`;
+      const botFormattedMsg = `${BOT_SENTINEL}[System/Contexta]: ${response}`;
       await deps.redis.rPush(redisKey, botFormattedMsg);
       await deps.redis.lTrim(redisKey, -50, -1);
 
