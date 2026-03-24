@@ -37,15 +37,17 @@ Core function:
 async function describeAttachment(
   ai: IAIProvider,
   attachment: { url: string; name: string; contentType: string; size: number }
-): Promise<string | null>
+): Promise<string>
 ```
 
+Always returns a bracketed string — never null, never throws. On success it contains a description; on failure it contains a fallback placeholder.
+
 Responsibilities:
-1. **Validate** — check MIME type against allowlist and size against limit (~20MB cap)
-2. **Fetch** — download binary data from the Discord CDN URL
-3. **Describe** — send bytes as base64 to Gemini via `IAIProvider.describeAttachment()` with a focused prompt
+1. **Validate** — check MIME type against allowlist and size against limit (~20MB cap). When the `contentType` is missing or generic (`application/octet-stream`), derive an effective MIME type from the file extension (e.g., `.ts` → `text/plain`, `.json` → `text/plain`). This ensures common code files uploaded to Discord are accepted even if Discord reports a generic MIME type.
+2. **Fetch** — download binary data from the Discord CDN URL (timeout: 10 seconds)
+3. **Describe** — send bytes as base64 to Gemini via `IAIProvider.describeAttachment()` with a focused prompt (timeout: 30 seconds)
 4. **Format** — return a bracketed description string: `[Attachment: filename.ext — description text]`
-5. **Fail gracefully** — network failures, API errors, and timeouts return a fallback placeholder like `[Attachment: filename.ext — description unavailable]`. Unsupported types return `[Attachment: filename.ext (size) — unsupported file type]`.
+5. **Fail gracefully** — network failures, API errors, and timeouts return a fallback placeholder like `[Attachment: filename.ext — description unavailable]`. Unsupported types return `[Attachment: filename.ext (size) — unsupported file type]`. Files over the size limit return `[Attachment: filename.ext (size) — file too large to process]`.
 
 A convenience function handles multiple attachments:
 
@@ -110,9 +112,9 @@ Multiple attachments:
 [User: Alice]: here are the receipts [Attachment: receipt1.pdf — A restaurant receipt from Olive Garden dated March 15, total $47.82] [Attachment: receipt2.pdf — A gas station receipt from Shell, $38.50 for 10.2 gallons]
 ```
 
-Failed description:
+Unsupported type:
 ```
-[User: Alice]: check this [Attachment: data.zip — unsupported file type]
+[User: Alice]: check this [Attachment: data.zip (2.1 MB) — unsupported file type]
 ```
 
 **Dependency injection:** `MessageCreateDeps` gains an `attachmentProcessor` field (defaulting to the real implementation) so tests can mock it.
@@ -199,4 +201,5 @@ Errors are logged but never block the message pipeline. The user's text content 
 | **Unchanged** `backgroundWorker.ts` | Sees richer text, no code changes |
 | **Unchanged** `src/db/schema.sql` | No new tables or columns |
 | **Unchanged** `messageGuard.ts` | `[Attachment: ...]` is not a role prefix |
+| **Modified** `mockAIProvider.ts` | Add `describeAttachment` stub to existing test helper |
 | **New** test files + mock | Unit, component, integration coverage |
