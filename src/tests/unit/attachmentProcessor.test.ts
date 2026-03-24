@@ -101,6 +101,30 @@ describe('resolveEffectiveMimeType', () => {
   it('returns null for unknown extension with generic MIME', () => {
     expect(resolveEffectiveMimeType('application/octet-stream', 'data.bin')).toBeNull();
   });
+
+  it('resolves .txt files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, 'message.txt')).toBe('text/plain');
+  });
+
+  it('resolves .md files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, 'README.md')).toBe('text/plain');
+  });
+
+  it('resolves .csv files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, 'data.csv')).toBe('text/plain');
+  });
+
+  it('resolves .log files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, 'app.log')).toBe('text/plain');
+  });
+
+  it('resolves .env files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, '.env')).toBe('text/plain');
+  });
+
+  it('resolves .gitignore files with null contentType via extension', () => {
+    expect(resolveEffectiveMimeType(null, '.gitignore')).toBe('text/plain');
+  });
 });
 
 describe('isSupportedMimeType', () => {

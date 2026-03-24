@@ -23,11 +23,13 @@ const SUPPORTED_DOCUMENT_TYPES = new Set([
   'text/markdown',
 ]);
 
-const CODE_EXTENSIONS = new Set([
+const TEXT_LIKE_EXTENSIONS = new Set([
   '.ts', '.js', '.tsx', '.jsx', '.py', '.rb', '.go', '.rs', '.java',
   '.c', '.cpp', '.h', '.cs', '.swift', '.kt', '.sh', '.bash',
   '.json', '.yaml', '.yml', '.xml', '.html', '.css', '.scss',
   '.sql', '.graphql', '.proto', '.toml', '.ini', '.cfg',
+  '.txt', '.md', '.csv', '.log',
+  '.env', '.conf', '.properties', '.editorconfig', '.gitignore', '.dockerignore',
 ]);
 
 export function resolveEffectiveMimeType(contentType: string | null, fileName: string): string | null {
@@ -43,7 +45,7 @@ export function resolveEffectiveMimeType(contentType: string | null, fileName: s
   }
 
   const ext = fileName.includes('.') ? '.' + fileName.split('.').pop()!.toLowerCase() : '';
-  if (CODE_EXTENSIONS.has(ext)) {
+  if (TEXT_LIKE_EXTENSIONS.has(ext)) {
     return 'text/plain';
   }
   return null;
