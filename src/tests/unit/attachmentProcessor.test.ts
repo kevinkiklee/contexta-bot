@@ -33,6 +33,13 @@ function mockFetchFail(): typeof fetch {
   return vi.fn().mockRejectedValue(new Error('Network error'));
 }
 
+function mockFetchText(content: string): typeof fetch {
+  return vi.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: () => Promise.resolve(Buffer.from(content, 'utf-8')),
+  });
+}
+
 describe('normalizeMimeType', () => {
   it('strips parameters after semicolon', () => {
     expect(normalizeMimeType('text/plain; charset=utf-8')).toBe('text/plain');
@@ -188,6 +195,71 @@ describe('describeAttachment', () => {
     const result = await describeAttachment(ai, makeAttachment(), mockFetchOk());
     expect(result).toBe('[Attachment: photo.png — A test image showing a blue square on a white background]');
     expect(ai.describeAttachment).toHaveBeenCalledWith('image/png', expect.any(String), 'photo.png');
+  });
+
+  it('returns raw text content for text/plain files without calling AI', async () => {
+    const textContent = 'Hello from the text file';
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ contentType: 'text/plain', name: 'notes.txt', size: 100 }),
+      mockFetchText(textContent)
+    );
+    expect(result).toBe('[Attachment: notes.txt — Hello from the text file]');
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
+  });
+
+  it('returns raw text content for text/csv files without calling AI', async () => {
+    const csvContent = 'name,age\nAlice,30\nBob,25';
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ contentType: 'text/csv', name: 'data.csv', size: 100 }),
+      mockFetchText(csvContent)
+    );
+    expect(result).toBe('[Attachment: data.csv — name,age\nAlice,30\nBob,25]');
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
+  });
+
+  it('truncates text content exceeding MAX_TEXT_LENGTH', async () => {
+    const longContent = 'x'.repeat(5000);
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ contentType: 'text/plain', name: 'big.txt', size: 5000 }),
+      mockFetchText(longContent)
+    );
+    expect(result).toContain('[Attachment: big.txt — ');
+    expect(result).toContain('[truncated]');
+    expect(result).toContain(']');
+    const inner = result.slice('[Attachment: big.txt — '.length, result.lastIndexOf(']'));
+    expect(inner.replace(' [truncated]', '').length).toBe(MAX_TEXT_LENGTH);
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
+  });
+
+  it('does not truncate text content at exactly MAX_TEXT_LENGTH', async () => {
+    const exactContent = 'y'.repeat(MAX_TEXT_LENGTH);
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ contentType: 'text/plain', name: 'exact.txt', size: MAX_TEXT_LENGTH }),
+      mockFetchText(exactContent)
+    );
+    expect(result).not.toContain('[truncated]');
+    expect(result).toBe(`[Attachment: exact.txt — ${exactContent}]`);
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
+  });
+
+  it('still sends image files to AI for description', async () => {
+    const result = await describeAttachment(ai, makeAttachment(), mockFetchOk());
+    expect(result).toBe('[Attachment: photo.png — A test image showing a blue square on a white background]');
+    expect(ai.describeAttachment).toHaveBeenCalledWith('image/png', expect.any(String), 'photo.png');
+  });
+
+  it('still sends PDF files to AI for description', async () => {
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ contentType: 'application/pdf', name: 'doc.pdf' }),
+      mockFetchOk()
+    );
+    expect(result).toContain('[Attachment: doc.pdf —');
+    expect(ai.describeAttachment).toHaveBeenCalledWith('application/pdf', expect.any(String), 'doc.pdf');
   });
 
   it('returns size placeholder for files over the limit', async () => {

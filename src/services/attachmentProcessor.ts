@@ -89,7 +89,7 @@ export async function describeAttachment(
     return `[Attachment: ${name} (${formatFileSize(attachment.size)}) — unsupported file type]`;
   }
 
-  let base64Data: string;
+  let buffer: Buffer;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
@@ -100,14 +100,22 @@ export async function describeAttachment(
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    base64Data = buffer.toString('base64');
+    buffer = Buffer.from(await response.arrayBuffer());
   } catch (err) {
     console.error(`[attachmentProcessor] Failed to fetch ${name}:`, err);
     return `[Attachment: ${name} — description unavailable]`;
   }
 
+  if (isTextMimeType(effectiveMime)) {
+    let text = buffer.toString('utf-8');
+    if (text.length > MAX_TEXT_LENGTH) {
+      text = text.slice(0, MAX_TEXT_LENGTH) + ' [truncated]';
+    }
+    return `[Attachment: ${name} — ${text}]`;
+  }
+
   try {
+    const base64Data = buffer.toString('base64');
     const description = await ai.describeAttachment(effectiveMime, base64Data, name);
     return `[Attachment: ${name} — ${description}]`;
   } catch (err) {
