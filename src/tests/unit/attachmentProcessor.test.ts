@@ -215,6 +215,21 @@ describe('describeAttachment', () => {
     expect(result).toContain('[Attachment: index.ts —');
     expect(ai.describeAttachment).toHaveBeenCalledWith('text/plain', expect.any(String), 'index.ts');
   });
+
+  it('describes .txt file with parameterized MIME type (original bug)', async () => {
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({
+        contentType: 'text/plain; charset=utf-8',
+        name: 'message.txt',
+        size: 512,
+      }),
+      mockFetchOk()
+    );
+    expect(result).toContain('[Attachment: message.txt —');
+    expect(result).not.toContain('unsupported');
+    expect(ai.describeAttachment).toHaveBeenCalledWith('text/plain', expect.any(String), 'message.txt');
+  });
 });
 
 describe('processAttachments', () => {
