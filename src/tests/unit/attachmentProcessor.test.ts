@@ -74,6 +74,22 @@ describe('resolveEffectiveMimeType', () => {
     expect(resolveEffectiveMimeType('video/mp4', 'clip.mp4')).toBeNull();
   });
 
+  it('strips MIME parameters before matching', () => {
+    expect(resolveEffectiveMimeType('text/plain; charset=utf-8', 'notes.txt')).toBe('text/plain');
+  });
+
+  it('strips MIME parameters from image types', () => {
+    expect(resolveEffectiveMimeType('image/png; name=photo.png', 'photo.png')).toBe('image/png');
+  });
+
+  it('handles mixed-case MIME types', () => {
+    expect(resolveEffectiveMimeType('Text/Plain', 'notes.txt')).toBe('text/plain');
+  });
+
+  it('returns null for unsupported type even after normalization', () => {
+    expect(resolveEffectiveMimeType('video/mp4; codec=h264', 'clip.mp4')).toBeNull();
+  });
+
   it('falls back to extension for application/octet-stream', () => {
     expect(resolveEffectiveMimeType('application/octet-stream', 'main.ts')).toBe('text/plain');
   });

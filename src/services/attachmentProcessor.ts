@@ -32,10 +32,14 @@ const CODE_EXTENSIONS = new Set([
 
 export function resolveEffectiveMimeType(contentType: string | null, fileName: string): string | null {
   if (contentType && contentType !== 'application/octet-stream') {
-    if (SUPPORTED_IMAGE_TYPES.has(contentType) || SUPPORTED_DOCUMENT_TYPES.has(contentType)) {
-      return contentType;
+    const normalized = normalizeMimeType(contentType);
+    if (normalized === 'application/octet-stream') {
+      // fall through to extension check below
+    } else if (SUPPORTED_IMAGE_TYPES.has(normalized) || SUPPORTED_DOCUMENT_TYPES.has(normalized)) {
+      return normalized;
+    } else {
+      return null;
     }
-    return null;
   }
 
   const ext = fileName.includes('.') ? '.' + fileName.split('.').pop()!.toLowerCase() : '';
