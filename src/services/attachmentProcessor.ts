@@ -55,6 +55,11 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function normalizeMimeType(raw: string): string {
+  const base = raw.split(';')[0].trim();
+  return base.toLowerCase();
+}
+
 export async function describeAttachment(
   ai: IAIProvider,
   attachment: AttachmentInfo,

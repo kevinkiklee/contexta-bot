@@ -5,6 +5,7 @@ import {
   processAttachments,
   resolveEffectiveMimeType,
   isSupportedMimeType,
+  normalizeMimeType,
   MAX_FILE_SIZE,
 } from '../../services/attachmentProcessor.js';
 import type { AttachmentInfo } from '../../services/attachmentProcessor.js';
@@ -29,6 +30,36 @@ function mockFetchOk(base64Content = 'iVBORw0KGgo='): typeof fetch {
 function mockFetchFail(): typeof fetch {
   return vi.fn().mockRejectedValue(new Error('Network error'));
 }
+
+describe('normalizeMimeType', () => {
+  it('strips parameters after semicolon', () => {
+    expect(normalizeMimeType('text/plain; charset=utf-8')).toBe('text/plain');
+  });
+
+  it('strips parameters from image types', () => {
+    expect(normalizeMimeType('image/jpeg; name=photo.jpg')).toBe('image/jpeg');
+  });
+
+  it('handles trailing semicolon with no params', () => {
+    expect(normalizeMimeType('text/plain;')).toBe('text/plain');
+  });
+
+  it('handles multiple semicolon-separated segments', () => {
+    expect(normalizeMimeType('text/html; charset=utf-8; boundary=something')).toBe('text/html');
+  });
+
+  it('lowercases the MIME type', () => {
+    expect(normalizeMimeType('Text/Plain')).toBe('text/plain');
+  });
+
+  it('lowercases and strips params combined', () => {
+    expect(normalizeMimeType('Image/PNG; Name=foo')).toBe('image/png');
+  });
+
+  it('returns already-clean types unchanged', () => {
+    expect(normalizeMimeType('application/pdf')).toBe('application/pdf');
+  });
+});
 
 describe('resolveEffectiveMimeType', () => {
   it('returns supported image MIME type as-is', () => {
