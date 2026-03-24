@@ -34,4 +34,16 @@ export interface IAIProvider {
    * @param ttlMinutes Duration for the cache to exist.
    */
   createServerContextCache(lore: string, ttlMinutes?: number): Promise<string>;
+
+  /**
+   * Describes an image or document attachment for context in conversation.
+   * @param mimeType The MIME type of the attachment.
+   * @param base64Data The base64-encoded binary data.
+   * @param fileName The original filename.
+   */
+  describeAttachment(
+    mimeType: string,
+    base64Data: string,
+    fileName: string
+  ): Promise<string>;
 }
