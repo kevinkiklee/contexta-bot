@@ -30,6 +30,10 @@ export const data = new SlashCommandBuilder()
           )));
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+    await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+    return;
+  }
   const subcommand = interaction.options.getSubcommand();
   await interaction.reply({ content: `Processing settings update for: ${subcommand}...`, ephemeral: true });
 }
