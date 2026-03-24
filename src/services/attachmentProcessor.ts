@@ -111,7 +111,15 @@ export async function describeAttachment(
     if (text.length > MAX_TEXT_LENGTH) {
       text = text.slice(0, MAX_TEXT_LENGTH) + ' [truncated]';
     }
-    return `[Attachment: ${name} — ${text}]`;
+    // Sanitize before constructing the return string.
+    // We apply role-prefix redaction and control-char stripping inline rather than
+    // calling sanitizeMessageContent, because that function strips \n and \t which
+    // are structurally meaningful in multi-line text files (code, CSV, markdown).
+    // Tab (\x09) and newline (\x0A) are intentionally preserved here.
+    const sanitizedText = text
+      .replace(/[\x00-\x08\x0B-\x1F\x7F-\x9F]/g, '')                     // strip C0/C1 except \t and \n
+      .replace(/\[(?:System\/Contexta|User:[^\]]*)\]:\s*/gi, '[REDACTED] '); // redact role prefixes
+    return `[Attachment: ${name} — ${sanitizedText}]`;
   }
 
   try {
