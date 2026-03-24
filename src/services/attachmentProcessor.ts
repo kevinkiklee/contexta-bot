@@ -50,7 +50,8 @@ export function resolveEffectiveMimeType(contentType: string | null, fileName: s
 }
 
 export function isSupportedMimeType(mimeType: string): boolean {
-  return SUPPORTED_IMAGE_TYPES.has(mimeType) || SUPPORTED_DOCUMENT_TYPES.has(mimeType);
+  const normalized = normalizeMimeType(mimeType);
+  return SUPPORTED_IMAGE_TYPES.has(normalized) || SUPPORTED_DOCUMENT_TYPES.has(normalized);
 }
 
 function formatFileSize(bytes: number): string {

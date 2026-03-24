@@ -115,6 +115,18 @@ describe('isSupportedMimeType', () => {
   it('returns false for video/mp4', () => {
     expect(isSupportedMimeType('video/mp4')).toBe(false);
   });
+
+  it('returns true for parameterized text/plain', () => {
+    expect(isSupportedMimeType('text/plain; charset=utf-8')).toBe(true);
+  });
+
+  it('returns true for mixed-case image type', () => {
+    expect(isSupportedMimeType('Image/PNG')).toBe(true);
+  });
+
+  it('returns false for unsupported type even with params', () => {
+    expect(isSupportedMimeType('video/mp4; codec=h264')).toBe(false);
+  });
 });
 
 describe('describeAttachment', () => {
