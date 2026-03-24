@@ -7,6 +7,7 @@ import {
   isSupportedMimeType,
   normalizeMimeType,
   isTextMimeType,
+  isAllowedAttachmentUrl,
   MAX_FILE_SIZE,
   MAX_TEXT_LENGTH,
 } from '../../services/attachmentProcessor.js';
@@ -127,12 +128,40 @@ describe('resolveEffectiveMimeType', () => {
     expect(resolveEffectiveMimeType(null, 'app.log')).toBe('text/plain');
   });
 
-  it('resolves .env files with null contentType via extension', () => {
-    expect(resolveEffectiveMimeType(null, '.env')).toBe('text/plain');
+  it('returns null for .env files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, '.env')).toBeNull();
   });
 
-  it('resolves .gitignore files with null contentType via extension', () => {
-    expect(resolveEffectiveMimeType(null, '.gitignore')).toBe('text/plain');
+  it('returns null for .gitignore files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, '.gitignore')).toBeNull();
+  });
+
+  it('returns null for .conf files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, 'app.conf')).toBeNull();
+  });
+
+  it('returns null for .properties files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, 'app.properties')).toBeNull();
+  });
+
+  it('returns null for .ini files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, 'config.ini')).toBeNull();
+  });
+
+  it('returns null for .cfg files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, 'settings.cfg')).toBeNull();
+  });
+
+  it('returns null for .dockerignore files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, '.dockerignore')).toBeNull();
+  });
+
+  it('returns null for .editorconfig files (blocked)', () => {
+    expect(resolveEffectiveMimeType(null, '.editorconfig')).toBeNull();
+  });
+
+  it('returns null for blocked extensions even with application/octet-stream', () => {
+    expect(resolveEffectiveMimeType('application/octet-stream', '.env')).toBeNull();
   });
 });
 
@@ -181,6 +210,40 @@ describe('isTextMimeType', () => {
 
   it('returns false for application/pdf', () => {
     expect(isTextMimeType('application/pdf')).toBe(false);
+  });
+});
+
+describe('isAllowedAttachmentUrl', () => {
+  it('returns true for cdn.discordapp.com', () => {
+    expect(isAllowedAttachmentUrl('https://cdn.discordapp.com/attachments/1/2/file.txt')).toBe(true);
+  });
+
+  it('returns true for media.discordapp.net', () => {
+    expect(isAllowedAttachmentUrl('https://media.discordapp.net/attachments/1/2/file.png')).toBe(true);
+  });
+
+  it('returns true for images-ext-1.discordapp.net', () => {
+    expect(isAllowedAttachmentUrl('https://images-ext-1.discordapp.net/attachments/1/2/file.jpg')).toBe(true);
+  });
+
+  it('returns true for images-ext-2.discordapp.net', () => {
+    expect(isAllowedAttachmentUrl('https://images-ext-2.discordapp.net/attachments/1/2/file.jpg')).toBe(true);
+  });
+
+  it('returns false for evil.example.com', () => {
+    expect(isAllowedAttachmentUrl('https://evil.example.com/file.txt')).toBe(false);
+  });
+
+  it('returns false for a subdomain of discordapp.com that is not in the allowlist', () => {
+    expect(isAllowedAttachmentUrl('https://other.discordapp.com/file.txt')).toBe(false);
+  });
+
+  it('returns false for malformed URL', () => {
+    expect(isAllowedAttachmentUrl('not-a-url')).toBe(false);
+  });
+
+  it('returns false for empty string', () => {
+    expect(isAllowedAttachmentUrl('')).toBe(false);
   });
 });
 
@@ -279,6 +342,18 @@ describe('describeAttachment', () => {
       mockFetchOk()
     );
     expect(result).toContain('unsupported file type');
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
+  });
+
+  it('returns unsupported source for disallowed URL and does not fetch', async () => {
+    const fetchFn = vi.fn();
+    const result = await describeAttachment(
+      ai,
+      makeAttachment({ url: 'https://evil.example.com/file.txt' }),
+      fetchFn as unknown as typeof fetch
+    );
+    expect(result).toBe('[Attachment: photo.png — unsupported source]');
+    expect(fetchFn).not.toHaveBeenCalled();
     expect(ai.describeAttachment).not.toHaveBeenCalled();
   });
 

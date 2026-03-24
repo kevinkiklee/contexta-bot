@@ -25,16 +25,39 @@ const SUPPORTED_DOCUMENT_TYPES = new Set([
   'text/markdown',
 ]);
 
+const BLOCKED_EXTENSIONS = new Set([
+  '.env', '.conf', '.properties', '.ini', '.cfg',
+  '.gitignore', '.dockerignore', '.editorconfig',
+]);
+
 const TEXT_LIKE_EXTENSIONS = new Set([
   '.ts', '.js', '.tsx', '.jsx', '.py', '.rb', '.go', '.rs', '.java',
   '.c', '.cpp', '.h', '.cs', '.swift', '.kt', '.sh', '.bash',
   '.json', '.yaml', '.yml', '.xml', '.html', '.css', '.scss',
-  '.sql', '.graphql', '.proto', '.toml', '.ini', '.cfg',
+  '.sql', '.graphql', '.proto', '.toml',
   '.txt', '.md', '.csv', '.log',
-  '.env', '.conf', '.properties', '.editorconfig', '.gitignore', '.dockerignore',
 ]);
 
+const ALLOWED_ATTACHMENT_HOSTS = new Set([
+  'cdn.discordapp.com',
+  'media.discordapp.net',
+  'images-ext-1.discordapp.net',
+  'images-ext-2.discordapp.net',
+]);
+
+export function isAllowedAttachmentUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return ALLOWED_ATTACHMENT_HOSTS.has(hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function resolveEffectiveMimeType(contentType: string | null, fileName: string): string | null {
+  const ext = fileName.includes('.') ? '.' + fileName.split('.').pop()!.toLowerCase() : '';
+  if (BLOCKED_EXTENSIONS.has(ext)) return null;
+
   if (contentType && contentType !== 'application/octet-stream') {
     const normalized = normalizeMimeType(contentType);
     if (normalized === 'application/octet-stream') {
@@ -46,7 +69,6 @@ export function resolveEffectiveMimeType(contentType: string | null, fileName: s
     }
   }
 
-  const ext = fileName.includes('.') ? '.' + fileName.split('.').pop()!.toLowerCase() : '';
   if (TEXT_LIKE_EXTENSIONS.has(ext)) {
     return 'text/plain';
   }
@@ -82,6 +104,10 @@ export async function describeAttachment(
 
   if (attachment.size > MAX_FILE_SIZE) {
     return `[Attachment: ${name} (${formatFileSize(attachment.size)}) — file too large to process]`;
+  }
+
+  if (!isAllowedAttachmentUrl(attachment.url)) {
+    return `[Attachment: ${name} — unsupported source]`;
   }
 
   const effectiveMime = resolveEffectiveMimeType(attachment.contentType, name);
