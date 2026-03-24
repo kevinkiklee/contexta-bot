@@ -39,6 +39,7 @@ export function createMockMessage(overrides?: Record<string, any>): Message {
     client: { user: { id: 'bot-999' } },
     reply: vi.fn().mockResolvedValue(undefined),
     react: vi.fn().mockResolvedValue(undefined),
+    attachments: new Map(),
     ...overrides,
   } as unknown as Message;
 }

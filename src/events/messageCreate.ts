@@ -5,6 +5,8 @@ import { GeminiProvider } from '../llm/GeminiProvider.js';
 import { formatUserMessage } from '../utils/messageGuard.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import type { IAIProvider } from '../llm/IAIProvider.js';
+import { processAttachments } from '../services/attachmentProcessor.js';
+import type { AttachmentInfo } from '../services/attachmentProcessor.js';
 
 export interface MessageCreateDeps {
   ai: IAIProvider;
@@ -14,11 +16,13 @@ export interface MessageCreateDeps {
     lRange: (key: string, start: number, stop: number) => Promise<string[]>;
     set: (key: string, value: string) => Promise<string | null>;
   };
+  processAttachments: (ai: IAIProvider, attachments: AttachmentInfo[]) => Promise<string>;
 }
 
 const defaultDeps: MessageCreateDeps = {
   ai: new GeminiProvider(),
   redis: redisClient as unknown as MessageCreateDeps['redis'],
+  processAttachments,
 };
 
 export const name = Events.MessageCreate;
@@ -33,7 +37,20 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
   if (!serverId) return;
 
   const displayName = message.member?.displayName || message.author.username;
-  const formattedMessage = formatUserMessage(displayName, message.content);
+  let formattedMessage = formatUserMessage(displayName, message.content);
+
+  if (message.attachments.size > 0) {
+    const attachmentInfos: AttachmentInfo[] = [...message.attachments.values()].map(att => ({
+      url: att.url,
+      name: att.name ?? 'unknown',
+      contentType: att.contentType,
+      size: att.size,
+    }));
+    const descriptions = await deps.processAttachments(deps.ai, attachmentInfos);
+    if (descriptions) {
+      formattedMessage += ' ' + descriptions;
+    }
+  }
 
   const redisKey = `channel:${channelId}:history`;
   await deps.redis.rPush(redisKey, formattedMessage);
