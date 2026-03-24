@@ -6,7 +6,9 @@ import {
   resolveEffectiveMimeType,
   isSupportedMimeType,
   normalizeMimeType,
+  isTextMimeType,
   MAX_FILE_SIZE,
+  MAX_TEXT_LENGTH,
 } from '../../services/attachmentProcessor.js';
 import type { AttachmentInfo } from '../../services/attachmentProcessor.js';
 
@@ -150,6 +152,28 @@ describe('isSupportedMimeType', () => {
 
   it('returns false for unsupported type even with params', () => {
     expect(isSupportedMimeType('video/mp4; codec=h264')).toBe(false);
+  });
+});
+
+describe('isTextMimeType', () => {
+  it('returns true for text/plain', () => {
+    expect(isTextMimeType('text/plain')).toBe(true);
+  });
+
+  it('returns true for text/csv', () => {
+    expect(isTextMimeType('text/csv')).toBe(true);
+  });
+
+  it('returns true for text/markdown', () => {
+    expect(isTextMimeType('text/markdown')).toBe(true);
+  });
+
+  it('returns false for image/png', () => {
+    expect(isTextMimeType('image/png')).toBe(false);
+  });
+
+  it('returns false for application/pdf', () => {
+    expect(isTextMimeType('application/pdf')).toBe(false);
   });
 });
 

@@ -9,6 +9,8 @@ export interface AttachmentInfo {
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
+export const MAX_TEXT_LENGTH = 4000;
+
 const SUPPORTED_IMAGE_TYPES = new Set([
   'image/png',
   'image/jpeg',
@@ -65,6 +67,10 @@ function formatFileSize(bytes: number): string {
 export function normalizeMimeType(raw: string): string {
   const base = raw.split(';')[0].trim();
   return base.toLowerCase();
+}
+
+export function isTextMimeType(mimeType: string): boolean {
+  return mimeType.startsWith('text/');
 }
 
 export async function describeAttachment(
