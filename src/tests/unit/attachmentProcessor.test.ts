@@ -302,17 +302,19 @@ describe('describeAttachment', () => {
     expect(result).toContain('[Attachment:');
   });
 
-  it('resolves code files with generic MIME via extension', async () => {
+  it('resolves code files with generic MIME via extension using raw text', async () => {
+    const codeContent = 'const x = 42;';
     const result = await describeAttachment(
       ai,
       makeAttachment({ contentType: 'application/octet-stream', name: 'index.ts' }),
-      mockFetchOk()
+      mockFetchText(codeContent)
     );
-    expect(result).toContain('[Attachment: index.ts —');
-    expect(ai.describeAttachment).toHaveBeenCalledWith('text/plain', expect.any(String), 'index.ts');
+    expect(result).toBe('[Attachment: index.ts — const x = 42;]');
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
   });
 
-  it('describes .txt file with parameterized MIME type (original bug)', async () => {
+  it('returns raw content for .txt file with parameterized MIME type (original bug)', async () => {
+    const textContent = 'Hello from the message file';
     const result = await describeAttachment(
       ai,
       makeAttachment({
@@ -320,11 +322,11 @@ describe('describeAttachment', () => {
         name: 'message.txt',
         size: 512,
       }),
-      mockFetchOk()
+      mockFetchText(textContent)
     );
-    expect(result).toContain('[Attachment: message.txt —');
+    expect(result).toBe('[Attachment: message.txt — Hello from the message file]');
     expect(result).not.toContain('unsupported');
-    expect(ai.describeAttachment).toHaveBeenCalledWith('text/plain', expect.any(String), 'message.txt');
+    expect(ai.describeAttachment).not.toHaveBeenCalled();
   });
 });
 
