@@ -59,4 +59,26 @@ export class GeminiProvider implements IAIProvider {
     // For now, this placeholder returns a mock cache ID that would be saved in PG.
     return `cached-lore-${Date.now()}`;
   }
+
+  async describeAttachment(
+    mimeType: string,
+    base64Data: string,
+    fileName: string
+  ): Promise<string> {
+    const response = await this.ai.models.generateContent({
+      model: this.modelName,
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType, data: base64Data } },
+          { text: `Describe this file (${fileName}) concisely for context in a Discord conversation. Focus on the key content, not formatting details.` },
+        ],
+      }],
+      config: {
+        systemInstruction: 'You are a concise file descriptor. Output a single short paragraph describing the content. No preamble.',
+      },
+    });
+
+    return response.text || 'No description available';
+  }
 }
