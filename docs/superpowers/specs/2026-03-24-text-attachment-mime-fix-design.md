@@ -17,13 +17,19 @@ Common text file extensions (`.txt`, `.md`, `.csv`, `.log`) are absent from `COD
 
 ## Design
 
-### 1. MIME Parameter Stripping
+### 1. MIME Normalization
 
-Add a normalization step at the top of `resolveEffectiveMimeType`: split on `;`, take the first segment, and trim whitespace. This converts `text/plain; charset=utf-8` → `text/plain` before any set lookup.
+Extract a shared helper function `normalizeMimeType(raw: string): string` that:
 
-The stripped base type is then checked against `SUPPORTED_IMAGE_TYPES` and `SUPPORTED_DOCUMENT_TYPES` as before.
+1. Splits on `;` and takes the first segment
+2. Trims whitespace
+3. Lowercases the result (RFC 2045 — type/subtype is case-insensitive)
 
-**Important:** The stripped base type (not the original parameterized string) must be returned and passed downstream to `GeminiProvider.describeAttachment`, since Gemini expects clean MIME types in `inlineData.mimeType`.
+This converts `text/plain; charset=utf-8` → `text/plain`, `Image/PNG` → `image/png`, etc.
+
+Apply this normalization in both `resolveEffectiveMimeType` and `isSupportedMimeType` so the exported API is consistent — callers can pass raw Discord contentType strings to either function without pre-processing.
+
+**Important:** The normalized base type (not the original parameterized string) must be returned from `resolveEffectiveMimeType` and passed downstream to `GeminiProvider.describeAttachment`, since Gemini expects clean MIME types in `inlineData.mimeType`.
 
 ### 2. Extension Allowlist Expansion
 
@@ -56,10 +62,12 @@ The extension fallback continues to return `text/plain` for any match when the M
 
 ### New Unit Tests
 
-- MIME parameter stripping: `text/plain; charset=utf-8` resolves to `text/plain`
-- MIME parameter stripping: `image/jpeg; name=photo.jpg` resolves to `image/jpeg`
-- MIME parameter edge case: contentType with `;` but no params (e.g., `text/plain;`) resolves to `text/plain`
-- MIME parameter edge case: contentType with multiple `;` segments strips all of them
+- MIME normalization: `text/plain; charset=utf-8` resolves to `text/plain`
+- MIME normalization: `image/jpeg; name=photo.jpg` resolves to `image/jpeg`
+- MIME normalization edge case: contentType with `;` but no params (e.g., `text/plain;`) resolves to `text/plain`
+- MIME normalization edge case: contentType with multiple `;` segments strips all of them
+- MIME case folding: `Text/Plain` resolves to `text/plain`
+- `isSupportedMimeType` accepts parameterized and mixed-case input (e.g., `text/plain; charset=utf-8` → `true`)
 - Expanded extensions: `.txt` file with null contentType resolves to `text/plain`
 - Expanded extensions: `.md`, `.log`, `.env`, `.gitignore` all resolve to `text/plain`
 - End-to-end: `.txt` file with `text/plain; charset=utf-8` contentType produces a description (not "unsupported")
@@ -72,5 +80,5 @@ All existing unit and component tests must continue to pass. The changes are pur
 
 | File | Change |
 |---|---|
-| `src/services/attachmentProcessor.ts` | Strip MIME params before lookup; rename `CODE_EXTENSIONS` → `TEXT_LIKE_EXTENSIONS`; add missing text extensions |
+| `src/services/attachmentProcessor.ts` | Add `normalizeMimeType` helper; apply in `resolveEffectiveMimeType` and `isSupportedMimeType`; rename `CODE_EXTENSIONS` → `TEXT_LIKE_EXTENSIONS`; add missing text extensions |
 | `src/tests/unit/attachmentProcessor.test.ts` | New test cases for MIME stripping and expanded extensions |
