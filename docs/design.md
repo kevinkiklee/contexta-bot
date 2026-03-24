@@ -1,8 +1,8 @@
-# System Design Document: Contexta (Discord AI Assistant)
+# System Design Document: Contexta Bot (Discord AI Assistant)
 
 ## 1. System Overview
 
-Contexta is an intelligent, integrated AI assistant for Discord. Unlike simple command-response bots, this system functions as a persistent server member, capable of handling multi-turn, multi-user conversations while maintaining distinct memory streams for the server as a whole, specific channels, and individual users. It is designed to act as a reliable, always-on co-host for communities of any size.
+Contexta Bot is an intelligent, integrated AI assistant for Discord. Unlike simple command-response bots, this system functions as a persistent server member, capable of handling multi-turn, multi-user conversations while maintaining distinct memory streams for the server as a whole, specific channels, and individual users. It is designed to act as a reliable, always-on co-host for communities of any size.
 
 ## 2. Core Architecture & Tech Stack
 
@@ -41,7 +41,7 @@ To ensure the bot remains model-agnostic, the core system does not interact dire
 
 ## 6. LLM Optimization: Gemini Context Caching
 
-Contexta utilizes Gemini Context Caching to drastically cut API costs when injecting massive server rules and channel histories.
+Contexta Bot utilizes Gemini Context Caching to drastically cut API costs when injecting massive server rules and channel histories.
 
   * The Cache Payload: The overarching Server Context is sent to the Gemini API to generate a cached object with a Time-To-Live (TTL).
   * Dynamic Injection: For each user message, the system calls the API, passing the cached context ID alongside the dynamic Channel Context and the Redis chat window.
@@ -133,16 +133,16 @@ Note on Indexing: This table utilizes a B-Tree index on (server\_id, channel\_id
 
 ## Appendix: Discord Developer Portal Setup
 
-Before writing any code, Contexta needs to be registered as an official application within the Discord ecosystem to generate the necessary API tokens and invite links.
+Before writing any code, Contexta Bot needs to be registered as an official application within the Discord ecosystem to generate the necessary API tokens and invite links.
 
 ### 1. Create the Application
 Navigate to the Discord Developer Portal and log in.
 
 Click the "New Application" button in the top right corner.
 
-Name the application Contexta (or your chosen bot name), agree to the Terms of Service, and click Create.
+Name the application Contexta Bot (or your chosen bot name), agree to the Terms of Service, and click Create.
 
-(Optional but recommended): Upload a bot avatar and fill out the description in the "General Information" tab so users know what Contexta does.
+(Optional but recommended): Upload a bot avatar and fill out the description in the "General Information" tab so users know what Contexta Bot does.
 
 ### 2. Generate the Bot Token
 In the left-hand menu, click on the **Bot** tab.
@@ -155,18 +155,18 @@ Under the bot's username, click **Reset Token** to generate your unique API key.
 > **CRITICAL:** Copy this token immediately and store it somewhere safe (like your local `.env` file as `DISCORD_TOKEN`). You will not be able to see it again without resetting it. Do not ever commit this token to GitHub.
 
 ### 3. Enable Privileged Gateway Intents
-Because Contexta needs to maintain a rolling Redis cache of recent conversations and build user profiles, it must have explicit permission from Discord to read message content.
+Because Contexta Bot needs to maintain a rolling Redis cache of recent conversations and build user profiles, it must have explicit permission from Discord to read message content.
 
 Stay on the **Bot** tab and scroll down to the **Privileged Gateway Intents** section.
 
-Toggle ON the **SERVER MEMBERS INTENT** (Allows Contexta to see who joins/leaves and build the user profiles database).
+Toggle ON the **SERVER MEMBERS INTENT** (Allows Contexta Bot to see who joins/leaves and build the user profiles database).
 
-Toggle ON the **MESSAGE CONTENT INTENT** (Mandatory for Contexta to read user messages for the short-term cache and long-term pgvector embedding).
+Toggle ON the **MESSAGE CONTENT INTENT** (Mandatory for Contexta Bot to read user messages for the short-term cache and long-term pgvector embedding).
 
 Click **Save Changes** at the bottom of the screen.
 
 ### 4. Generate the Server Invite Link
-To invite Contexta to your test server, you need to generate an OAuth2 URL with the correct scopes and permissions.
+To invite Contexta Bot to your test server, you need to generate an OAuth2 URL with the correct scopes and permissions.
 
 In the left-hand menu, click on **OAuth2**, then select **URL Generator**.
 
@@ -174,7 +174,7 @@ Under **Scopes**, check the following boxes:
 - `bot`
 - `applications.commands` (Required to register and use the slash commands like `/recall` and `/summarize`).
 
-Under **Bot Permissions** (which appears after checking `bot`), select the minimum required permissions for Contexta to function:
+Under **Bot Permissions** (which appears after checking `bot`), select the minimum required permissions for Contexta Bot to function:
 - **Text Permissions:** Send Messages, Read Message History, Use External Emojis, Add Reactions, Embed Links, Attach Files.
 
 Scroll to the bottom and copy the **Generated URL**.

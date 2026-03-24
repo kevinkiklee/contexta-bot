@@ -1,8 +1,8 @@
-# Contexta - AI Agent Instructions (AGENTS.md)
+# Contexta Bot - AI Agent Instructions (AGENTS.md)
 
 ## Project Overview
 
-Contexta is an intelligent, persistent AI assistant for Discord. It operates as a reliable, always-on co-host capable of managing multi-user, multi-turn conversations. It relies on a tiered memory architecture to track server rules, active channel context, and user-specific preferences without bloating the LLM prompt.
+Contexta Bot is an intelligent, persistent AI assistant for Discord. It operates as a reliable, always-on co-host capable of managing multi-user, multi-turn conversations. It relies on a tiered memory architecture to track server rules, active channel context, and user-specific preferences without bloating the LLM prompt.
 
 ## Tech Stack & Environment
 

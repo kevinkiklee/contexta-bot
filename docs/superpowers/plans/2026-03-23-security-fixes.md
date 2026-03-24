@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix all 7 security vulnerabilities identified in the Contexta Discord bot codebase.
+**Goal:** Fix all 7 security vulnerabilities identified in the Contexta Bot Discord bot codebase.
 
 **Architecture:** Add two focused utility modules (`messageGuard.ts`, `rateLimiter.ts`) that the event handler and commands consume. Fix existing modules in-place for the DB SSL, background worker isolation, and command validation issues. All pure logic gets unit tests; integration points do not.
 

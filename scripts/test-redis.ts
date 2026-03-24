@@ -12,12 +12,12 @@ async function testRedis() {
     console.log(`[Redis Test] Ping response: ${pingResponse}`);
     
     // Test 2: Write and read operations
-    await redisClient.set('contexta_test_key', 'Connection successful!');
-    const val = await redisClient.get('contexta_test_key');
+    await redisClient.set('contexta_bot_test_key', 'Connection successful!');
+    const val = await redisClient.get('contexta_bot_test_key');
     console.log(`[Redis Test] Retrieved value: ${val}`);
     
     // Cleanup
-    await redisClient.del('contexta_test_key');
+    await redisClient.del('contexta_bot_test_key');
     await redisClient.disconnect();
     
     console.log('[Redis Test] Success! The caching layer is fully operational.');

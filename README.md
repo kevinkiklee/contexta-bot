@@ -1,6 +1,6 @@
-# Contexta ✨
+# Contexta Bot ✨
 
-Contexta is an AI-powered Discord bot built with TypeScript, `discord.js`, and Google's Gemini API. It leverages PostgreSQL (with pgvector) for long-term memory and persistent storage, and Redis for short-term caching to deliver context-aware, intelligent interactions in your Discord server.
+Contexta Bot is an AI-powered Discord bot built with TypeScript, `discord.js`, and Google's Gemini API. It leverages PostgreSQL (with pgvector) for long-term memory and persistent storage, and Redis for short-term caching to deliver context-aware, intelligent interactions in your Discord server.
 
 ## Features
 - **AI-Powered Responses**: Integrated with Google's Gemini API for highly intelligent and native conversational capabilities.
@@ -9,7 +9,7 @@ Contexta is an AI-powered Discord bot built with TypeScript, `discord.js`, and G
 - **TypeScript & ES Modules**: Built with modern TypeScript and ESM for robust, typed, and maintainable code.
 
 ## Context & Memory Architecture
-Contexta uses a multi-tiered memory system to provide native, intelligent responses:
+Contexta Bot uses a multi-tiered memory system to provide native, intelligent responses:
 - **Server Lore (Context Caching)**: Overarching server rules and global context are stored and optionally cached via the Gemini Context Caching API for lower latency and efficient token usage.
 - **User Profiles**: The bot infers and builds personalized context and preferences (stored as JSONB) for individual users based on their unique interactions.
 - **Semantic Channel Memory**: Past conversations are chunked, summarized, and stored as vector embeddings using PostgreSQL and `pgvector`. This allows the bot to perform similarity searches and organically weave relevant past context into current replies.
@@ -27,7 +27,7 @@ To run this bot, you will need:
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd contexta
+   cd contexta-bot
    ```
 
 2. **Install dependencies**

@@ -54,12 +54,12 @@ async function start() {
   
   const token = process.env.DISCORD_TOKEN;
   if (!token) {
-    console.error('[Contexta] FATAL ERROR: DISCORD_TOKEN is missing. Please set it in your .env file.');
+    console.error('[Contexta Bot] FATAL ERROR: DISCORD_TOKEN is missing. Please set it in your .env file.');
     process.exit(1);
   }
   
   await client.login(token);
-  console.log(`[Contexta] Boot sequence complete. System online.`);
+  console.log(`[Contexta Bot] Boot sequence complete. System online.`);
 }
 
 start();

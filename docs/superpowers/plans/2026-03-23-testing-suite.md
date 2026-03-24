@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement a full test pyramid (unit → component → integration) for the Contexta Discord bot, including production refactoring to extract testable seams.
+**Goal:** Implement a full test pyramid (unit → component → integration) for the Contexta Bot Discord bot, including production refactoring to extract testable seams.
 
 **Architecture:** Bottom-up approach — extract pure functions and inject dependencies into handlers so each layer can be tested with minimal mocking. Rate limiter uses `vi.mock()` as the single allowed module-level mock. All other service dependencies (AI, Redis, DB) are injected via optional `deps` parameters.
 

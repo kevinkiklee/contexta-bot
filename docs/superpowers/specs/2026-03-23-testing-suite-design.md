@@ -1,4 +1,4 @@
-# Testing Suite Design — Contexta
+# Testing Suite Design — Contexta Bot
 
 **Date:** 2026-03-23
 **Approach:** Bottom-Up Unit-First (full coverage pyramid)
