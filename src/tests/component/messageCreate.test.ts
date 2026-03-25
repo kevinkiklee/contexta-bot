@@ -201,6 +201,13 @@ describe('messageCreate handler', () => {
     expect(attachmentProcessor.processAttachments).not.toHaveBeenCalled();
   });
 
+  it('registers channelId in active_channels Set on each message', async () => {
+    const message = createMockMessage();
+    await execute(message, { ai, redis, processAttachments: attachmentProcessor.processAttachments });
+
+    expect(redis.sAdd).toHaveBeenCalledWith('active_channels', 'channel-789');
+  });
+
   it('bot reply is stored in Redis with BOT_SENTINEL prefix', async () => {
     const message = createMockMessage({
       mentions: { has: vi.fn().mockReturnValue(true) },

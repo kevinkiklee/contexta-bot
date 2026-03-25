@@ -12,7 +12,7 @@ import {
 describe('fetchEligibleChannels', () => {
   it('skips channels with fewer than 10 messages', async () => {
     const redis = createMockRedis();
-    redis.keys.mockResolvedValue(['channel:c1:history']);
+    redis.sMembers.mockResolvedValue(['c1']);
     redis.lRange.mockResolvedValue(['msg1', 'msg2']);
     redis.get.mockResolvedValue('server-1');
 
@@ -22,7 +22,7 @@ describe('fetchEligibleChannels', () => {
 
   it('skips channels without a server mapping', async () => {
     const redis = createMockRedis();
-    redis.keys.mockResolvedValue(['channel:c1:history']);
+    redis.sMembers.mockResolvedValue(['c1']);
     redis.get.mockResolvedValue(null);
     redis.lRange.mockResolvedValue(new Array(15).fill('msg'));
 
@@ -33,12 +33,21 @@ describe('fetchEligibleChannels', () => {
   it('returns eligible channels with correct shape', async () => {
     const redis = createMockRedis();
     const messages = new Array(15).fill('msg');
-    redis.keys.mockResolvedValue(['channel:c1:history']);
+    redis.sMembers.mockResolvedValue(['c1']);
     redis.get.mockResolvedValue('server-1');
     redis.lRange.mockResolvedValue(messages);
 
     const result = await fetchEligibleChannels(redis as any);
     expect(result).toEqual([{ channelId: 'c1', serverId: 'server-1', messages }]);
+  });
+
+  it('does not call redis.keys', async () => {
+    const redis = createMockRedis();
+    redis.sMembers.mockResolvedValue([]);
+
+    await fetchEligibleChannels(redis as any);
+
+    expect(redis.keys).not.toHaveBeenCalled();
   });
 });
 

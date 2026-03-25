@@ -4,13 +4,13 @@ import { GeminiProvider } from '../llm/GeminiProvider.js';
 import type { IAIProvider } from '../llm/IAIProvider.js';
 
 export async function fetchEligibleChannels(
-  redis: Pick<typeof redisClient, 'keys' | 'get' | 'lRange'>
+  redis: Pick<typeof redisClient, 'sMembers' | 'get' | 'lRange'>
 ): Promise<{ channelId: string; serverId: string; messages: string[] }[]> {
-  const keys = await redis.keys('channel:*:history');
+  const channelIds = await redis.sMembers('active_channels');
   const eligible: { channelId: string; serverId: string; messages: string[] }[] = [];
 
-  for (const key of keys) {
-    const channelId = key.split(':')[1];
+  for (const channelId of channelIds) {
+    const key = `channel:${channelId}:history`;
     const serverId = await redis.get(`channel:${channelId}:server`);
     if (!serverId) {
       console.warn(`[Worker] No serverId mapping found for channel ${channelId}, skipping.`);
@@ -49,7 +49,7 @@ export async function storeMemoryVector(
 }
 
 export async function runSemanticEmbeddingWorker(
-  redis: Pick<typeof redisClient, 'keys' | 'get' | 'lRange'> = redisClient,
+  redis: Pick<typeof redisClient, 'sMembers' | 'get' | 'lRange'> = redisClient,
   ai: IAIProvider = new GeminiProvider(),
   db: { query: (text: string, params?: any[]) => Promise<any> } = pool
 ): Promise<void> {

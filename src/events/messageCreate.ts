@@ -15,6 +15,7 @@ export interface MessageCreateDeps {
     lTrim: (key: string, start: number, stop: number) => Promise<string>;
     lRange: (key: string, start: number, stop: number) => Promise<string[]>;
     set: (key: string, value: string) => Promise<string | null>;
+    sAdd: (key: string, member: string) => Promise<number>;
   };
   processAttachments: (ai: IAIProvider, attachments: AttachmentInfo[]) => Promise<string>;
 }
@@ -62,6 +63,7 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
   const redisKey = `channel:${channelId}:history`;
   await deps.redis.rPush(redisKey, formattedMessage);
+  await deps.redis.sAdd('active_channels', channelId);
   await deps.redis.lTrim(redisKey, -50, -1);
   await deps.redis.set(`channel:${channelId}:server`, serverId);
 
