@@ -70,6 +70,10 @@ Each service has its own `package.json`, `tsconfig.json`, and build command. No 
 6. Guild list is synced to `user_servers` table — each guild the user is in gets a row with `is_admin` derived from the `MANAGE_GUILD` permission flag
 7. JWT session created containing Discord user ID — used to look up everything else from DB
 
+**Access token handling:** The Discord access token is used only during the `signIn` callback to fetch the guild list. It is **not** stored in the JWT or database — the guild sync happens at login time and the token is discarded. If future features require calling the Discord API on behalf of the user outside of login, the token would need to be persisted (deferred).
+
+**Guild sync staleness:** The `user_servers` table reflects the user's guild memberships as of their last login. A user who leaves a server will retain their row until they log in again. This is acceptable — no polling or webhook-based sync is needed for MVP.
+
 ### OAuth Scopes
 
 | Scope | Purpose |
@@ -161,9 +165,9 @@ The dashboard only shows servers where the bot is installed. On the `/dashboard`
 
 **Server detail (`/dashboard/[serverId]`):** Overview page. Admins see links to Settings, Lore, and History. Members see History only.
 
-**Settings (`/dashboard/[serverId]/settings`):** Read/write the `server_settings` row for this server. Fields: active model selection (dropdown). Cache actions: refresh, clear (triggers the same logic as the `/settings` slash command).
+**Settings (`/dashboard/[serverId]/settings`):** Read/write the `server_settings` row for this server. Fields: active model selection (dropdown). Cache actions: refresh, clear — these operate directly on the shared database and Redis (e.g., deleting the relevant Redis cache keys), not by calling the bot. The bot and dashboard both read from the same DB/Redis state, so a dashboard write is immediately visible to the bot on its next read.
 
-**Lore (`/dashboard/[serverId]/lore`):** Text editor for server lore. Reads/writes lore content for this server. Replaces the `/lore` slash command functionality.
+**Lore (`/dashboard/[serverId]/lore`):** Text editor for server lore. Reads/writes lore content for this server. The `/lore` slash command remains functional in Discord — both paths (dashboard and slash command) read/write the same DB row, so they stay in sync automatically.
 
 **History (`/dashboard/[serverId]/history`):** Read-only. Lists channels with conversation history. Pulls recent messages from Redis (`channel:{channelId}:history`) and memory summaries from `channel_memory_vectors`. Paginated.
 
