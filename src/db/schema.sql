@@ -42,3 +42,22 @@ CREATE INDEX IF NOT EXISTS channel_memory_meta_idx ON channel_memory_vectors (se
 
 -- HNSW index for vector similarity search
 CREATE INDEX IF NOT EXISTS channel_memory_vector_idx ON channel_memory_vectors USING hnsw (embedding vector_cosine_ops);
+
+-- Dashboard: Discord users who have logged in
+CREATE TABLE IF NOT EXISTS users (
+  id          TEXT PRIMARY KEY,
+  username    TEXT NOT NULL,
+  avatar_url  TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Dashboard: Links users to their Discord servers
+CREATE TABLE IF NOT EXISTS user_servers (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  server_id  TEXT NOT NULL,
+  is_admin   BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (user_id, server_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_servers_server ON user_servers(server_id);
