@@ -1,3 +1,5 @@
+import AddToDiscordButton from './AddToDiscordButton';
+
 export const DISCORD_INVITE = 'https://discord.com/oauth2/authorize?client_id=1485441632835866786&permissions=274877910016&scope=bot+applications.commands';
 export const DASHBOARD_URL = 'https://contexta-bot.vercel.app';
 
@@ -17,12 +19,7 @@ export default function Nav() {
             <a href="#how-it-works" className="hover:text-text transition">How It Works</a>
           </div>
         </div>
-        <a
-          href={DISCORD_INVITE}
-          className="rounded-lg bg-blurple px-4 py-1.5 text-white text-[13px] font-semibold hover:bg-blurple-hover transition shadow-lg shadow-blurple/20"
-        >
-          Add to Discord
-        </a>
+        <AddToDiscordButton size="sm" />
       </div>
     </nav>
   );

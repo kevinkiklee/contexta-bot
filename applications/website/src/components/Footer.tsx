@@ -1,4 +1,4 @@
-import { DISCORD_INVITE, DASHBOARD_URL } from './Nav';
+import { DASHBOARD_URL } from './Nav';
 
 export default function Footer() {
   return (
@@ -12,7 +12,7 @@ export default function Footer() {
         </div>
         <div className="flex items-center gap-5">
           <a href={DASHBOARD_URL} className="hover:text-text-muted transition">Dashboard</a>
-          <a href={DISCORD_INVITE} className="hover:text-text-muted transition">Add to Discord</a>
+          <span className="text-text-dim/50 cursor-default">Add to Discord</span>
         </div>
       </div>
     </footer>
