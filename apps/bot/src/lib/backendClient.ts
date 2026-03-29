@@ -2,62 +2,51 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../.env') });
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:6000';
-const BOT_API_KEY = process.env.BOT_API_KEY || '';
+const BACKEND_URL = (process.env.BACKEND_URL || 'http://127.0.0.1:6000').trim().replace(/\/$/, '');
+const BOT_API_KEY = (process.env.BOT_API_KEY || 'test_bot_key').trim();
 
-export async function backendPost<T = any>(path: string, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+async function request<T>(path: string, options: RequestInit): Promise<T> {
+  // Ensure path starts with /
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${BACKEND_URL}${cleanPath}`;
+  
+  console.log(`[BackendClient] Fetching: ${url}`);
+  
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${BOT_API_KEY}`,
+      ...options.headers,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.text().catch(() => `HTTP ${res.status}`);
+    throw new Error(`Backend ${path} failed (${res.status}): ${error}`);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export const backendPost = <T = any>(path: string, body: Record<string, unknown>) =>
+  request<T>(path, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${BOT_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const error = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(`Backend ${path} failed (${res.status}): ${error}`);
-  }
-  return res.json() as Promise<T>;
-}
 
-export async function backendGet<T = any>(path: string): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    headers: { 'Authorization': `Bearer ${BOT_API_KEY}` },
-  });
-  if (!res.ok) {
-    const error = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(`Backend ${path} failed (${res.status}): ${error}`);
-  }
-  return res.json() as Promise<T>;
-}
+export const backendGet = <T = any>(path: string) =>
+  request<T>(path, { method: 'GET' });
 
-export async function backendPut<T = any>(path: string, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+export const backendPut = <T = any>(path: string, body: Record<string, unknown>) =>
+  request<T>(path, {
     method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${BOT_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const error = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(`Backend ${path} failed (${res.status}): ${error}`);
-  }
-  return res.json() as Promise<T>;
-}
 
-export async function backendDelete<T = any>(path: string): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${BOT_API_KEY}` },
-  });
-  if (!res.ok) {
-    const error = await res.text().catch(() => `HTTP ${res.status}`);
-    throw new Error(`Backend ${path} failed (${res.status}): ${error}`);
-  }
-  return res.json() as Promise<T>;
-}
+export const backendDelete = <T = any>(path: string) =>
+  request<T>(path, { method: 'DELETE' });
