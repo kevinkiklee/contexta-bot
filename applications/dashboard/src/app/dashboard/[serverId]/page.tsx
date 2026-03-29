@@ -23,13 +23,13 @@ export default async function ServerOverviewPage({
           <>
             <Link
               href={`/dashboard/${serverId}/settings`}
-              className="rounded-lg border border-gray-800 p-4 hover:border-gray-600 transition"
+              className="rounded-lg border border-border p-4 hover:border-accent transition"
             >
               Settings — Configure bot model and cache
             </Link>
             <Link
               href={`/dashboard/${serverId}/lore`}
-              className="rounded-lg border border-gray-800 p-4 hover:border-gray-600 transition"
+              className="rounded-lg border border-border p-4 hover:border-accent transition"
             >
               Lore — Edit server rules and themes
             </Link>
@@ -37,7 +37,7 @@ export default async function ServerOverviewPage({
         )}
         <Link
           href={`/dashboard/${serverId}/history`}
-          className="rounded-lg border border-gray-800 p-4 hover:border-gray-600 transition"
+          className="rounded-lg border border-border p-4 hover:border-accent transition"
         >
           History — Browse conversation history
         </Link>

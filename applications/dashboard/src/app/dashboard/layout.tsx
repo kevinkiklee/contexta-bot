@@ -1,5 +1,6 @@
 import { auth, signOut } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { ThemeToggle } from '@contexta/ui';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -7,12 +8,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen">
-      <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <nav className="border-b border-border px-6 py-4 flex items-center justify-between">
         <a href="/dashboard" className="text-xl font-bold">Contexta</a>
         <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm">{session.user.name}</span>
+          <ThemeToggle />
+          <span className="text-text-muted text-sm">{session.user.name}</span>
           <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
-            <button type="submit" className="text-sm text-gray-400 hover:text-white transition">
+            <button type="submit" className="text-sm text-text-muted hover:text-text transition">
               Sign out
             </button>
           </form>

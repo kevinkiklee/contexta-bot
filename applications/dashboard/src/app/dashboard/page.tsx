@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Your Servers</h1>
       {servers.length === 0 ? (
-        <p className="text-gray-400">
+        <p className="text-text-muted">
           No servers found. Make sure Contexta is added to your Discord server.
         </p>
       ) : (
@@ -23,10 +23,10 @@ export default async function DashboardPage() {
             <Link
               key={server.server_id}
               href={`/dashboard/${server.server_id}`}
-              className="block rounded-lg border border-gray-800 p-4 hover:border-gray-600 transition"
+              className="block rounded-lg border border-border p-4 hover:border-accent transition"
             >
               <h2 className="font-semibold">{server.server_name || server.server_id}</h2>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-text-muted mt-1">
                 {server.is_admin ? 'Admin' : 'Member'} &middot; {server.active_model}
               </p>
             </Link>

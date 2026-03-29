@@ -31,11 +31,11 @@ export default async function HistoryPage({
       <h1 className="text-2xl font-bold mb-6">Conversation History</h1>
 
       {channels.length === 0 ? (
-        <p className="text-gray-400">No conversation history found for this server.</p>
+        <p className="text-text-muted">No conversation history found for this server.</p>
       ) : (
         <div className="flex gap-6">
           <nav className="w-48 shrink-0">
-            <h2 className="text-sm font-medium text-gray-400 mb-2">Channels</h2>
+            <h2 className="text-sm font-medium text-text-muted mb-2">Channels</h2>
             <ul className="space-y-1">
               {channels.map((ch) => (
                 <li key={ch}>
@@ -43,8 +43,8 @@ export default async function HistoryPage({
                     href={`?channel=${ch}&page=1`}
                     className={`block rounded px-3 py-1.5 text-sm transition ${
                       ch === selectedChannel
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-900'
+                        ? 'bg-bg-overlay text-text'
+                        : 'text-text-muted hover:text-text hover:bg-bg-raised'
                     }`}
                   >
                     #{ch}
@@ -56,12 +56,12 @@ export default async function HistoryPage({
 
           <div className="flex-1 min-w-0">
             {messages.length === 0 ? (
-              <p className="text-gray-400">No messages in this channel.</p>
+              <p className="text-text-muted">No messages in this channel.</p>
             ) : (
               <>
                 <ul className="space-y-2">
                   {messages.map((msg, i) => (
-                    <li key={i} className="rounded bg-gray-900 px-3 py-2 text-sm font-mono break-all">
+                    <li key={i} className="rounded bg-bg-raised px-3 py-2 text-sm font-mono break-all">
                       {msg}
                     </li>
                   ))}
@@ -70,7 +70,7 @@ export default async function HistoryPage({
                   {currentPage > 1 && (
                     <a
                       href={`?channel=${selectedChannel}&page=${currentPage - 1}`}
-                      className="rounded bg-gray-800 px-3 py-1 text-sm hover:bg-gray-700 transition"
+                      className="rounded bg-bg-overlay px-3 py-1 text-sm hover:bg-border transition"
                     >
                       Previous
                     </a>
@@ -78,7 +78,7 @@ export default async function HistoryPage({
                   {messages.length === pageSize && (
                     <a
                       href={`?channel=${selectedChannel}&page=${currentPage + 1}`}
-                      className="rounded bg-gray-800 px-3 py-1 text-sm hover:bg-gray-700 transition"
+                      className="rounded bg-bg-overlay px-3 py-1 text-sm hover:bg-border transition"
                     >
                       Next
                     </a>
