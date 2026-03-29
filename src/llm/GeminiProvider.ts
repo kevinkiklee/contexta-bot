@@ -3,11 +3,12 @@ import { IAIProvider } from './IAIProvider.js';
 
 export class GeminiProvider implements IAIProvider {
   private ai: GoogleGenAI;
-  private modelName = 'gemini-2.5-flash';
+  private modelName: string;
   private embeddingModel = 'text-embedding-004';
 
-  constructor() {
+  constructor(modelName = 'gemini-2.5-flash') {
     this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    this.modelName = modelName;
   }
 
   async generateChatResponse(
