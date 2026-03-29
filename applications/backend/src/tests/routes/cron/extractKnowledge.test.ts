@@ -36,13 +36,13 @@ describe('Pipeline 2: Knowledge Extractor', () => {
         { id: 'msg-2', server_id: 's1', channel_id: 'c1', display_name: 'Bob', content: 'Agreed, Redis it is', created_at: '2026-03-29T10:05:00Z', tags: { topics: ['redis'], isDecision: true, isActionItem: false, isReference: false, confidence: 0.8 } },
       ],
       rowCount: 2,
-    });
+    } as any);
 
     // Existing entries for linking
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ id: 'ke-existing', title: 'Caching strategy discussion', type: 'topic' }],
       rowCount: 1,
-    });
+    } as any);
 
     // LLM extraction response
     const mockProvider = mockGetProvider('gemini-2.5-pro');
@@ -61,10 +61,10 @@ describe('Pipeline 2: Knowledge Extractor', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ id: 'ke-new' }],
       rowCount: 1,
-    });
+    } as any);
 
     // Insert link
-    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 } as any);
 
     const res = await app.request('/api/cron/extract-knowledge', { method: 'POST' });
     expect(res.status).toBe(200);
@@ -78,7 +78,7 @@ describe('Pipeline 2: Knowledge Extractor', () => {
         { id: 'msg-1', server_id: 's1', channel_id: 'c1', display_name: 'Alice', content: 'lol', created_at: '2026-03-29T10:00:00Z', tags: { topics: [], isDecision: false, isActionItem: false, isReference: false, confidence: 0.1 } },
       ],
       rowCount: 1,
-    });
+    } as any);
 
     const res = await app.request('/api/cron/extract-knowledge', { method: 'POST' });
     expect(res.status).toBe(200);

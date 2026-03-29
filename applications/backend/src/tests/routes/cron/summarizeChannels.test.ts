@@ -32,7 +32,7 @@ describe('Pipeline 3: Channel Summarizer', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ server_id: 's1', channel_id: 'c1', msg_count: 25, earliest: '2026-03-28T00:00:00Z', latest: '2026-03-29T00:00:00Z' }],
       rowCount: 1,
-    });
+    } as any);
 
     mockRawQuery.mockResolvedValueOnce({
       rows: Array.from({ length: 25 }, (_, i) => ({
@@ -41,7 +41,7 @@ describe('Pipeline 3: Channel Summarizer', () => {
         created_at: new Date(2026, 2, 28, i).toISOString(),
       })),
       rowCount: 25,
-    });
+    } as any);
 
     const mockProvider = mockGetProvider('gemini-2.5-pro');
     vi.mocked(mockProvider.generateChatResponse).mockResolvedValueOnce(JSON.stringify({
@@ -52,7 +52,7 @@ describe('Pipeline 3: Channel Summarizer', () => {
       actionItems: ['Alice to set up K8s cluster'],
     }));
 
-    mockRawQuery.mockResolvedValueOnce({ rows: [{ id: 'cs-1' }], rowCount: 1 });
+    mockRawQuery.mockResolvedValueOnce({ rows: [{ id: 'cs-1' }], rowCount: 1 } as any);
 
     const res = await app.request('/api/cron/summarize-channels', { method: 'POST' });
     expect(res.status).toBe(200);
@@ -64,7 +64,7 @@ describe('Pipeline 3: Channel Summarizer', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ server_id: 's1', channel_id: 'c1', msg_count: 5, earliest: '2026-03-28T00:00:00Z', latest: '2026-03-29T00:00:00Z' }],
       rowCount: 1,
-    });
+    } as any);
 
     const res = await app.request('/api/cron/summarize-channels', { method: 'POST' });
     expect(res.status).toBe(200);

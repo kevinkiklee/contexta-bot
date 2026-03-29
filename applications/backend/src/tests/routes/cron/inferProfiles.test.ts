@@ -32,7 +32,7 @@ describe('Pipeline 4: Profile Inferencer', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ user_id: 'u1', server_id: 's1', display_name: 'Alice' }],
       rowCount: 1,
-    });
+    } as any);
 
     // User's recent messages
     mockRawQuery.mockResolvedValueOnce({
@@ -44,7 +44,7 @@ describe('Pipeline 4: Profile Inferencer', () => {
         { content: 'Yeah the tests pass', tags: null },
       ],
       rowCount: 5,
-    });
+    } as any);
 
     // LLM profile response
     const mockProvider = mockGetProvider('gemini-2.5-flash');
@@ -60,10 +60,10 @@ describe('Pipeline 4: Profile Inferencer', () => {
     }));
 
     // Existing expertise (empty for new user)
-    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 } as any);
 
     // Upsert expertise entries + update server_members
-    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 });
+    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 } as any);
 
     const res = await app.request('/api/cron/infer-profiles', { method: 'POST' });
     expect(res.status).toBe(200);
@@ -75,7 +75,7 @@ describe('Pipeline 4: Profile Inferencer', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ user_id: 'u1', server_id: 's1', display_name: 'Alice' }],
       rowCount: 1,
-    });
+    } as any);
 
     mockRawQuery.mockResolvedValueOnce({
       rows: [
@@ -86,7 +86,7 @@ describe('Pipeline 4: Profile Inferencer', () => {
         { content: 'Still Docker', tags: { topics: ['docker'] } },
       ],
       rowCount: 5,
-    });
+    } as any);
 
     const mockProvider = mockGetProvider('gemini-2.5-flash');
     vi.mocked(mockProvider.generateChatResponse).mockResolvedValueOnce(JSON.stringify({
@@ -101,10 +101,10 @@ describe('Pipeline 4: Profile Inferencer', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ topic: 'docker', score: 0.6, message_count: 50 }],
       rowCount: 1,
-    });
+    } as any);
 
     // Upsert calls
-    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 });
+    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 } as any);
 
     const res = await app.request('/api/cron/infer-profiles', { method: 'POST' });
     expect(res.status).toBe(200);

@@ -34,7 +34,7 @@ describe('Pipeline 1: Message Tagger', () => {
         { id: 'msg-2', content: 'lol nice', display_name: 'Bob' },
       ],
       rowCount: 2,
-    });
+    } as any);
 
     const mockProvider = mockGetProvider('gemini-2.5-flash');
     vi.mocked(mockProvider.generateChatResponse).mockResolvedValueOnce(JSON.stringify([
@@ -42,7 +42,7 @@ describe('Pipeline 1: Message Tagger', () => {
       { index: 1, topics: [], isDecision: false, isActionItem: false, isReference: false, confidence: 0.1 },
     ]));
 
-    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 });
+    mockRawQuery.mockResolvedValue({ rows: [], rowCount: 1 } as any);
 
     const res = await app.request('/api/cron/tag-messages', { method: 'POST' });
     expect(res.status).toBe(200);
@@ -56,7 +56,7 @@ describe('Pipeline 1: Message Tagger', () => {
   });
 
   it('handles empty batch gracefully', async () => {
-    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    mockRawQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 } as any);
 
     const res = await app.request('/api/cron/tag-messages', { method: 'POST' });
     expect(res.status).toBe(200);
@@ -68,7 +68,7 @@ describe('Pipeline 1: Message Tagger', () => {
     mockRawQuery.mockResolvedValueOnce({
       rows: [{ id: 'msg-1', content: 'test', display_name: 'Alice' }],
       rowCount: 1,
-    });
+    } as any);
 
     const mockProvider = mockGetProvider('gemini-2.5-flash');
     vi.mocked(mockProvider.generateChatResponse).mockRejectedValueOnce(new Error('LLM failed'));
