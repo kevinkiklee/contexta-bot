@@ -9,6 +9,11 @@ import { serverRoutes } from './routes/servers.js';
 import { attachmentRoutes } from './routes/attachments.js';
 import { cacheRoutes } from './routes/cache.js';
 import { messageRoutes } from './routes/messages.js';
+import { knowledgeRoutes } from './routes/knowledge.js';
+import { tagMessagesRoutes } from './routes/cron/tagMessages.js';
+import { extractKnowledgeRoutes } from './routes/cron/extractKnowledge.js';
+import { summarizeChannelsRoutes } from './routes/cron/summarizeChannels.js';
+import { inferProfilesRoutes } from './routes/cron/inferProfiles.js';
 import { initRedis } from './lib/redis.js';
 
 dotenv.config();
@@ -22,6 +27,10 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 const cronApp = new Hono();
 cronApp.use('/*', cronAuth());
 cronApp.route('/', embeddingRoutes);
+cronApp.route('/', tagMessagesRoutes);
+cronApp.route('/', extractKnowledgeRoutes);
+cronApp.route('/', summarizeChannelsRoutes);
+cronApp.route('/', inferProfilesRoutes);
 app.route('/api/cron', cronApp);
 
 // Bot-facing API routes (bot API key auth)
@@ -33,6 +42,7 @@ apiApp.route('/', serverRoutes);
 apiApp.route('/', attachmentRoutes);
 apiApp.route('/', cacheRoutes);
 apiApp.route('/', messageRoutes);
+apiApp.route('/', knowledgeRoutes);
 app.route('/api', apiApp);
 
 // Error handler
