@@ -7,6 +7,7 @@ import {
   summarizeBatch,
   embedSummary,
   storeMemoryVector,
+  runSemanticEmbeddingWorker,
 } from '../../utils/backgroundWorker.js';
 
 describe('fetchEligibleChannels', () => {
@@ -83,5 +84,51 @@ describe('storeMemoryVector', () => {
     const [sql, params] = db.query.mock.calls[0];
     expect(sql).toContain('INSERT INTO channel_memory_vectors');
     expect(params).toEqual(['server-1', 'channel-1', 'summary text', '[0.1,0.2,0.3]']);
+  });
+});
+
+describe('runSemanticEmbeddingWorker idempotency', () => {
+  it('skips when lock key already exists', async () => {
+    const redis = createMockRedis();
+    redis.get.mockImplementation(async (key: string) => {
+      if (key === 'worker:embedding:running') return '1';
+      return null;
+    });
+    const ai = createMockAIProvider();
+    const db = createMockDb();
+
+    const result = await runSemanticEmbeddingWorker(redis as any, ai, db);
+    expect(result).toEqual({ status: 'skipped', reason: 'already_running', channelsProcessed: 0, embeddingsCreated: 0, errors: [] });
+    expect(redis.sMembers).not.toHaveBeenCalled();
+  });
+
+  it('acquires and releases lock on successful run', async () => {
+    const redis = createMockRedis();
+    redis.get.mockResolvedValue(null);
+    redis.sMembers.mockResolvedValue([]);
+    const ai = createMockAIProvider();
+    const db = createMockDb();
+
+    const result = await runSemanticEmbeddingWorker(redis as any, ai, db);
+    expect(redis.setEx).toHaveBeenCalledWith('worker:embedding:running', 300, '1');
+    expect(redis.del).toHaveBeenCalledWith('worker:embedding:running');
+    expect(result.status).toBe('completed');
+  });
+
+  it('returns stats with channel and embedding counts', async () => {
+    const redis = createMockRedis();
+    redis.get.mockImplementation(async (key: string) => {
+      if (key === 'worker:embedding:running') return null;
+      return 'server-1';
+    });
+    redis.sMembers.mockResolvedValue(['c1']);
+    redis.lRange.mockResolvedValue(new Array(15).fill('msg'));
+    const ai = createMockAIProvider();
+    const db = createMockDb();
+
+    const result = await runSemanticEmbeddingWorker(redis as any, ai, db);
+    expect(result.status).toBe('completed');
+    expect(result.channelsProcessed).toBe(1);
+    expect(result.embeddingsCreated).toBe(1);
   });
 });

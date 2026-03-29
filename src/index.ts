@@ -113,7 +113,7 @@ async function start() {
 
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
-    startHttpServer({ cronSecret, runWorker: runSemanticEmbeddingWorker as unknown as HttpServerDeps['runWorker'] });
+    startHttpServer({ cronSecret, runWorker: runSemanticEmbeddingWorker });
   } else {
     console.warn('[HTTP] CRON_SECRET not set — HTTP server disabled.');
   }
