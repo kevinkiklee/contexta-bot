@@ -12,10 +12,11 @@ export interface GuildPermission {
 }
 
 export function parseGuildPermissions(
-  guilds: { id: string; permissions: string }[]
-): GuildPermission[] {
+  guilds: { id: string; name: string; permissions: string }[]
+): (GuildPermission & { name: string })[] {
   return guilds.map(g => ({
     serverId: g.id,
+    name: g.name,
     isAdmin: hasManageGuild(g.permissions),
   }));
 }
@@ -33,7 +34,7 @@ interface UserProfile {
 export async function syncUserGuilds(
   db: DbClient,
   user: UserProfile,
-  guilds: { id: string; permissions: string }[]
+  guilds: { id: string; name: string; permissions: string }[]
 ): Promise<void> {
   await db.query(
     `INSERT INTO users (id, username, avatar_url) VALUES ($1, $2, $3)
@@ -46,13 +47,13 @@ export async function syncUserGuilds(
   if (guilds.length === 0) return;
 
   const parsed = parseGuildPermissions(guilds);
-  const values = parsed.map((g, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ');
+  const values = parsed.map((g, i) => `($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`).join(', ');
   const params: unknown[] = [user.id];
   for (const g of parsed) {
-    params.push(g.serverId, g.isAdmin);
+    params.push(g.serverId, g.isAdmin, g.name);
   }
 
-  await db.query(`INSERT INTO user_servers (user_id, server_id, is_admin) VALUES ${values}`, params);
+  await db.query(`INSERT INTO user_servers (user_id, server_id, is_admin, server_name) VALUES ${values}`, params);
 }
 
 interface UserServerRow {

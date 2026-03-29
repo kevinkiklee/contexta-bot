@@ -26,7 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return false;
         }
 
-        const guilds = (await res.json()) as { id: string; permissions: string }[];
+        const guilds = (await res.json()) as { id: string; name: string; permissions: string }[];
 
         await syncUserGuilds(pool, {
           id: user.id!,

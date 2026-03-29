@@ -13,16 +13,16 @@ interface RedisReader {
 export async function getUserServers(
   db: DbClient,
   userId: string
-): Promise<{ server_id: string; is_admin: boolean; active_model: string }[]> {
+): Promise<{ server_id: string; server_name: string | null; is_admin: boolean; active_model: string }[]> {
   const result = await db.query(
-    `SELECT us.server_id, us.is_admin, ss.active_model
+    `SELECT us.server_id, us.server_name, us.is_admin, ss.active_model
      FROM user_servers us
      INNER JOIN server_settings ss ON us.server_id = ss.server_id
      WHERE us.user_id = $1
-     ORDER BY us.server_id`,
+     ORDER BY us.server_name NULLS LAST, us.server_id`,
     [userId]
   );
-  return result.rows as { server_id: string; is_admin: boolean; active_model: string }[];
+  return result.rows as { server_id: string; server_name: string | null; is_admin: boolean; active_model: string }[];
 }
 
 // --- Server settings ---
