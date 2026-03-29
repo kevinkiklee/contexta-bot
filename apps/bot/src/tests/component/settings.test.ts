@@ -1,34 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockInteraction } from '../helpers/mockDiscord.js';
-import { createMockAIProvider } from '../helpers/mockAIProvider.js';
 
-vi.mock('../../db/index.js', () => ({
-  query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+vi.mock('../../lib/backendClient.js', () => ({
+  backendPut: vi.fn().mockResolvedValue({ success: true }),
+  backendPost: vi.fn().mockResolvedValue({ cacheId: 'cached-123' }),
+  backendDelete: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('../../llm/providerRegistry.js', () => ({
-  getProvider: vi.fn(),
-}));
-
-import { query } from '../../db/index.js';
-import { getProvider } from '../../llm/providerRegistry.js';
+import { backendPut, backendPost, backendDelete } from '../../lib/backendClient.js';
 import { execute } from '../../commands/settings.js';
 
-const mockQuery = vi.mocked(query);
-const mockGetProvider = vi.mocked(getProvider);
+const mockBackendPut = vi.mocked(backendPut);
+const mockBackendPost = vi.mocked(backendPost);
+const mockBackendDelete = vi.mocked(backendDelete);
 
 describe('settings command', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    process.env = { ...originalEnv, GEMINI_API_KEY: 'key', OPENAI_API_KEY: 'key', ANTHROPIC_API_KEY: 'key' };
-    mockGetProvider.mockReturnValue(createMockAIProvider());
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('rejects non-admin users', async () => {
     const interaction = createMockInteraction({
@@ -40,110 +27,63 @@ describe('settings command', () => {
     );
   });
 
-  describe('model subcommand', () => {
-    it('updates active_model in database', async () => {
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('model'),
-          getString: vi.fn().mockReturnValue('gpt-4o'),
-        },
-      });
-      await execute(interaction);
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO server_settings'),
-        expect.arrayContaining(['guild-456', 'gpt-4o'])
-      );
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('gpt-4o'), ephemeral: true })
-      );
+  it('model subcommand calls backend and confirms', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('model'),
+        getString: vi.fn().mockReturnValue('gpt-4o'),
+      },
     });
-
-    it('rejects when provider API key is missing', async () => {
-      mockGetProvider.mockImplementation(() => { throw new Error('OPENAI_API_KEY is required'); });
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('model'),
-          getString: vi.fn().mockReturnValue('gpt-4o'),
-        },
-      });
-      await execute(interaction);
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('Cannot switch'), ephemeral: true })
-      );
-    });
+    await execute(interaction);
+    expect(mockBackendPut).toHaveBeenCalledWith('/api/servers/guild-456/settings/model', { model: 'gpt-4o' });
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('gpt-4o'), ephemeral: true })
+    );
   });
 
-  describe('cache subcommand', () => {
-    it('refresh creates cache and stores ID', async () => {
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ server_lore: 'Test lore', active_model: 'gemini-2.5-flash' }], rowCount: 1,
-      } as any);
-      const mockAI = createMockAIProvider();
-      mockAI.createServerContextCache = vi.fn().mockResolvedValue('cached-123');
-      mockGetProvider.mockReturnValue(mockAI);
-
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('cache'),
-          getString: vi.fn().mockReturnValue('refresh'),
-        },
-      });
-      await execute(interaction);
-      expect(mockAI.createServerContextCache).toHaveBeenCalledWith('Test lore', 60);
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('context_cache_id'),
-        expect.arrayContaining(['cached-123'])
-      );
+  it('model subcommand handles backend error', async () => {
+    mockBackendPut.mockRejectedValue(new Error('Service unavailable'));
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('model'),
+        getString: vi.fn().mockReturnValue('gpt-4o'),
+      },
     });
+    await execute(interaction);
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('Cannot switch'), ephemeral: true })
+    );
+  });
 
-    it('refresh rejects when no lore exists', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 } as any);
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('cache'),
-          getString: vi.fn().mockReturnValue('refresh'),
-        },
-      });
-      await execute(interaction);
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('No server lore'), ephemeral: true })
-      );
+  it('cache clear calls backend delete', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('cache'),
+        getString: vi.fn().mockReturnValue('clear'),
+      },
     });
+    await execute(interaction);
+    expect(mockBackendDelete).toHaveBeenCalledWith('/api/cache/guild-456');
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('cleared'), ephemeral: true })
+    );
+  });
 
-    it('refresh rejects for non-Gemini models', async () => {
-      mockQuery.mockResolvedValueOnce({
-        rows: [{ server_lore: 'Lore', active_model: 'gpt-4o' }], rowCount: 1,
-      } as any);
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('cache'),
-          getString: vi.fn().mockReturnValue('refresh'),
-        },
-      });
-      await execute(interaction);
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining('only available with Gemini'), ephemeral: true })
-      );
+  it('cache refresh calls backend post', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getSubcommand: vi.fn().mockReturnValue('cache'),
+        getString: vi.fn().mockReturnValue('refresh'),
+      },
     });
-
-    it('clear nulls cache fields', async () => {
-      const interaction = createMockInteraction({
-        memberPermissions: { has: vi.fn().mockReturnValue(true) },
-        options: {
-          getSubcommand: vi.fn().mockReturnValue('cache'),
-          getString: vi.fn().mockReturnValue('clear'),
-        },
-      });
-      await execute(interaction);
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('context_cache_id = NULL'),
-        expect.arrayContaining(['guild-456'])
-      );
-    });
+    await execute(interaction);
+    expect(mockBackendPost).toHaveBeenCalledWith('/api/cache/refresh', { serverId: 'guild-456' });
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('refreshed'), ephemeral: true })
+    );
   });
 });

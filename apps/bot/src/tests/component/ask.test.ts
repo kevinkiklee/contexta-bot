@@ -1,40 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockInteraction } from '../helpers/mockDiscord.js';
-import { createMockAIProvider } from '../helpers/mockAIProvider.js';
 
 vi.mock('../../utils/rateLimiter.js', () => ({
   isRateLimited: vi.fn().mockReturnValue(false),
 }));
 
-vi.mock('../../db/index.js', () => ({
-  query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-}));
-
-vi.mock('../../llm/providerRegistry.js', () => ({
-  getProvider: vi.fn(),
+vi.mock('../../lib/backendClient.js', () => ({
+  backendPost: vi.fn().mockResolvedValue({ response: 'AI response' }),
+  backendGet: vi.fn().mockResolvedValue({ lore: null }),
 }));
 
 import { isRateLimited } from '../../utils/rateLimiter.js';
-import { query } from '../../db/index.js';
-import { getProvider } from '../../llm/providerRegistry.js';
+import { backendPost, backendGet } from '../../lib/backendClient.js';
 import { execute } from '../../commands/ask.js';
 
 const mockIsRateLimited = vi.mocked(isRateLimited);
-const mockQuery = vi.mocked(query);
-const mockGetProvider = vi.mocked(getProvider);
+const mockBackendPost = vi.mocked(backendPost);
+const mockBackendGet = vi.mocked(backendGet);
 
 describe('ask command', () => {
-  let mockAI: ReturnType<typeof createMockAIProvider>;
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRateLimited.mockReturnValue(false);
-    mockAI = createMockAIProvider();
-    mockGetProvider.mockReturnValue(mockAI);
-    mockQuery.mockResolvedValue({ rows: [{ active_model: 'gemini-2.5-flash', server_lore: null }], rowCount: 1 } as any);
+    mockBackendPost.mockResolvedValue({ response: 'AI response' });
+    mockBackendGet.mockResolvedValue({ lore: null });
   });
 
-  it('rejects when rate limited without deferring', async () => {
+  it('rejects when rate limited', async () => {
     mockIsRateLimited.mockReturnValue(true);
     const interaction = createMockInteraction();
     await execute(interaction);
@@ -44,29 +36,24 @@ describe('ask command', () => {
     expect(interaction.deferReply).not.toHaveBeenCalled();
   });
 
-  it('calls AI provider and replies with response', async () => {
-    mockAI.generateChatResponse = vi.fn().mockResolvedValue('The answer is 42.');
+  it('calls backend and replies with response', async () => {
     const interaction = createMockInteraction({
       options: {
-        getString: vi.fn().mockReturnValue('What is the meaning of life?'),
+        getString: vi.fn().mockReturnValue('What is TypeScript?'),
         getBoolean: vi.fn().mockReturnValue(false),
       },
     });
     await execute(interaction);
     expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: false });
-    expect(mockAI.generateChatResponse).toHaveBeenCalledWith(
-      expect.stringContaining('Contexta'),
-      expect.arrayContaining([
-        expect.objectContaining({ role: 'user', parts: [{ text: 'What is the meaning of life?' }] }),
-      ]),
-      expect.any(Object)
-    );
-    expect(interaction.editReply).toHaveBeenCalledWith('The answer is 42.');
+    expect(mockBackendPost).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
+      serverId: 'guild-456',
+      chatHistory: expect.any(Array),
+    }));
+    expect(interaction.editReply).toHaveBeenCalledWith('AI response');
   });
 
-  it('includes server lore in system prompt when available', async () => {
-    mockQuery.mockResolvedValue({ rows: [{ active_model: 'gemini-2.5-flash', server_lore: 'This is a pirate server.' }], rowCount: 1 } as any);
-    mockAI.generateChatResponse = vi.fn().mockResolvedValue('Arr!');
+  it('includes lore in system prompt when available', async () => {
+    mockBackendGet.mockResolvedValue({ lore: 'Pirates only!' });
     const interaction = createMockInteraction({
       options: {
         getString: vi.fn().mockReturnValue('hello'),
@@ -74,14 +61,15 @@ describe('ask command', () => {
       },
     });
     await execute(interaction);
-    const systemPrompt = vi.mocked(mockAI.generateChatResponse).mock.calls[0][0];
-    expect(systemPrompt).toContain('pirate server');
+    expect(mockBackendPost).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
+      systemPrompt: expect.stringContaining('Pirates only!'),
+    }));
   });
 
-  it('defers with ephemeral true when private option is set', async () => {
+  it('defers with ephemeral when private', async () => {
     const interaction = createMockInteraction({
       options: {
-        getString: vi.fn().mockReturnValue('secret question'),
+        getString: vi.fn().mockReturnValue('secret'),
         getBoolean: vi.fn().mockReturnValue(true),
       },
     });
@@ -89,8 +77,8 @@ describe('ask command', () => {
     expect(interaction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
   });
 
-  it('handles AI error gracefully', async () => {
-    mockAI.generateChatResponse = vi.fn().mockRejectedValue(new Error('API down'));
+  it('handles backend error gracefully', async () => {
+    mockBackendPost.mockRejectedValue(new Error('Backend down'));
     const interaction = createMockInteraction({
       options: {
         getString: vi.fn().mockReturnValue('test'),
@@ -98,20 +86,6 @@ describe('ask command', () => {
       },
     });
     await execute(interaction);
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      expect.stringContaining('issue')
-    );
-  });
-
-  it('uses default model when no server settings exist', async () => {
-    mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as any);
-    const interaction = createMockInteraction({
-      options: {
-        getString: vi.fn().mockReturnValue('test'),
-        getBoolean: vi.fn().mockReturnValue(false),
-      },
-    });
-    await execute(interaction);
-    expect(mockGetProvider).toHaveBeenCalledWith('gemini-2.5-flash');
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('issue'));
   });
 });

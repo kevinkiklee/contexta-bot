@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockInteraction } from '../helpers/mockDiscord.js';
 
-vi.mock('../../db/index.js', () => ({
-  query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+vi.mock('../../lib/backendClient.js', () => ({
+  backendGet: vi.fn().mockResolvedValue({ lore: null }),
+  backendPut: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-import { query } from '../../db/index.js';
+import { backendGet, backendPut } from '../../lib/backendClient.js';
 import { execute } from '../../commands/lore.js';
 
-const mockQuery = vi.mocked(query);
+const mockBackendGet = vi.mocked(backendGet);
+const mockBackendPut = vi.mocked(backendPut);
 
 describe('lore command', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => { vi.clearAllMocks(); });
 
   it('rejects non-admin users', async () => {
     const interaction = createMockInteraction({
@@ -25,32 +25,26 @@ describe('lore command', () => {
     );
   });
 
-  it('view action returns lore when it exists', async () => {
-    mockQuery.mockResolvedValue({ rows: [{ server_lore: 'This is a fantasy server.' }], rowCount: 1 } as any);
+  it('view returns lore when it exists', async () => {
+    mockBackendGet.mockResolvedValue({ lore: 'Fantasy server lore' });
     const interaction = createMockInteraction({
       memberPermissions: { has: vi.fn().mockReturnValue(true) },
       options: {
-        getString: vi.fn().mockImplementation((name: string) => {
-          if (name === 'action') return 'view';
-          return null;
-        }),
+        getString: vi.fn().mockImplementation((n: string) => n === 'action' ? 'view' : null),
       },
     });
     await execute(interaction);
     expect(interaction.reply).toHaveBeenCalledWith(
-      expect.objectContaining({ content: expect.stringContaining('fantasy server'), ephemeral: true })
+      expect.objectContaining({ content: 'Fantasy server lore', ephemeral: true })
     );
   });
 
-  it('view action reports when no lore is configured', async () => {
-    mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as any);
+  it('view reports no lore configured', async () => {
+    mockBackendGet.mockResolvedValue({ lore: null });
     const interaction = createMockInteraction({
       memberPermissions: { has: vi.fn().mockReturnValue(true) },
       options: {
-        getString: vi.fn().mockImplementation((name: string) => {
-          if (name === 'action') return 'view';
-          return null;
-        }),
+        getString: vi.fn().mockImplementation((n: string) => n === 'action' ? 'view' : null),
       },
     });
     await execute(interaction);
@@ -59,22 +53,19 @@ describe('lore command', () => {
     );
   });
 
-  it('update action upserts lore and clears cache', async () => {
+  it('update calls backend with correct args', async () => {
     const interaction = createMockInteraction({
       memberPermissions: { has: vi.fn().mockReturnValue(true) },
       options: {
-        getString: vi.fn().mockImplementation((name: string) => {
-          if (name === 'action') return 'update';
-          if (name === 'text') return 'New lore content';
+        getString: vi.fn().mockImplementation((n: string) => {
+          if (n === 'action') return 'update';
+          if (n === 'text') return 'New lore';
           return null;
         }),
       },
     });
     await execute(interaction);
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO server_settings'),
-      expect.arrayContaining(['guild-456', 'New lore content'])
-    );
+    expect(mockBackendPut).toHaveBeenCalledWith('/api/servers/guild-456/lore', { text: 'New lore' });
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({ content: expect.stringContaining('updated'), ephemeral: true })
     );
@@ -84,9 +75,9 @@ describe('lore command', () => {
     const interaction = createMockInteraction({
       memberPermissions: { has: vi.fn().mockReturnValue(true) },
       options: {
-        getString: vi.fn().mockImplementation((name: string) => {
-          if (name === 'action') return 'update';
-          if (name === 'text') return null;
+        getString: vi.fn().mockImplementation((n: string) => {
+          if (n === 'action') return 'update';
+          if (n === 'text') return null;
           return null;
         }),
       },
@@ -95,5 +86,6 @@ describe('lore command', () => {
     expect(interaction.reply).toHaveBeenCalledWith(
       expect.objectContaining({ content: expect.stringContaining('provide the lore text'), ephemeral: true })
     );
+    expect(mockBackendPut).not.toHaveBeenCalled();
   });
 });

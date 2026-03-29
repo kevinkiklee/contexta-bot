@@ -63,24 +63,12 @@ importers:
 
   apps/bot:
     dependencies:
-      '@anthropic-ai/sdk':
-        specifier: ^0.80.0
-        version: 0.80.0(zod@3.25.76)
-      '@google/genai':
-        specifier: latest
-        version: 1.47.0
       discord.js:
         specifier: ^14.14.1
         version: 14.25.1
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
-      openai:
-        specifier: ^6.33.0
-        version: 6.33.0(ws@8.20.0)(zod@3.25.76)
-      pg:
-        specifier: ^8.11.3
-        version: 8.20.0
       redis:
         specifier: ^4.6.13
         version: 4.7.1
@@ -88,9 +76,6 @@ importers:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
-      '@types/pg':
-        specifier: ^8.20.0
-        version: 8.20.0
       tsx:
         specifier: ^4.21.0
         version: 4.21.0

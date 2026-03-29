@@ -1,38 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockInteraction } from '../helpers/mockDiscord.js';
-import { createMockAIProvider } from '../helpers/mockAIProvider.js';
 import { Collection } from 'discord.js';
 
 vi.mock('../../utils/rateLimiter.js', () => ({
   isRateLimited: vi.fn().mockReturnValue(false),
 }));
 
-vi.mock('../../db/index.js', () => ({
-  query: vi.fn().mockResolvedValue({ rows: [{ active_model: 'gemini-2.5-flash' }], rowCount: 1 }),
-}));
-
-vi.mock('../../llm/providerRegistry.js', () => ({
-  getProvider: vi.fn(),
+vi.mock('../../lib/backendClient.js', () => ({
+  backendPost: vi.fn().mockResolvedValue({ summary: 'Here is the summary.' }),
 }));
 
 import { isRateLimited } from '../../utils/rateLimiter.js';
-import { getProvider } from '../../llm/providerRegistry.js';
+import { backendPost } from '../../lib/backendClient.js';
 import { execute } from '../../commands/summarize.js';
 
 const mockIsRateLimited = vi.mocked(isRateLimited);
-const mockGetProvider = vi.mocked(getProvider);
+const mockBackendPost = vi.mocked(backendPost);
 
 describe('summarize command', () => {
-  let mockAI: ReturnType<typeof createMockAIProvider>;
   let mockChannel: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRateLimited.mockReturnValue(false);
-    mockAI = createMockAIProvider();
-    mockAI.summarizeText = vi.fn().mockResolvedValue('Here is the summary of the conversation.');
-    mockGetProvider.mockReturnValue(mockAI);
-
+    mockBackendPost.mockResolvedValue({ summary: 'Here is the summary.' });
     mockChannel = {
       id: 'channel-789',
       messages: {
@@ -61,7 +52,7 @@ describe('summarize command', () => {
     );
   });
 
-  it('fetches messages and summarizes via AI', async () => {
+  it('fetches messages and calls backend', async () => {
     const interaction = createMockInteraction({
       channel: mockChannel,
       options: {
@@ -71,15 +62,14 @@ describe('summarize command', () => {
     });
     await execute(interaction);
     expect(mockChannel.messages.fetch).toHaveBeenCalled();
-    expect(mockAI.summarizeText).toHaveBeenCalledWith(
-      expect.stringContaining('Alice')
-    );
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      expect.stringContaining('summary')
-    );
+    expect(mockBackendPost).toHaveBeenCalledWith('/api/summarize', expect.objectContaining({
+      serverId: 'guild-456',
+      text: expect.stringContaining('Alice'),
+    }));
+    expect(interaction.editReply).toHaveBeenCalledWith('Here is the summary.');
   });
 
-  it('reports when no messages found in time range', async () => {
+  it('reports no messages found in time range', async () => {
     mockChannel.messages.fetch.mockResolvedValue(new Collection());
     const interaction = createMockInteraction({
       channel: mockChannel,
@@ -89,9 +79,7 @@ describe('summarize command', () => {
       },
     });
     await execute(interaction);
-    expect(interaction.editReply).toHaveBeenCalledWith(
-      expect.stringContaining('No messages found')
-    );
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('No messages found'));
   });
 
   it('uses specified channel when provided', async () => {
