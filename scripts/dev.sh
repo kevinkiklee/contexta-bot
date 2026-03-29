@@ -87,7 +87,7 @@ else
   done
 
   info "Starting PostgreSQL and Redis..."
-  docker compose up -d --wait
+  docker compose up -d --force-recreate --wait
 
   # Verify services are actually reachable
   RETRIES=0
