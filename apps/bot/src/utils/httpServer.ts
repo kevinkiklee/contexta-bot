@@ -3,7 +3,7 @@ import http from 'http';
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export function startHealthServer(): http.Server {
-  const port = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || '3005', 10);
 
   const server = http.createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
@@ -13,6 +13,14 @@ export function startHealthServer(): http.Server {
     }
     res.writeHead(404, JSON_HEADERS);
     res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Bot HTTP] Port ${port} is already in use. Health server failed to start.`);
+    } else {
+      console.error('[Bot HTTP] Server error:', err);
+    }
   });
 
   server.listen(port, () => {

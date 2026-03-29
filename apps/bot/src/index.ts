@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { initRedis } from './utils/redis.js';
 import { startHealthServer } from './utils/httpServer.js';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env') });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -110,7 +110,11 @@ async function start() {
 
   await client.login(token);
 
-  startHealthServer();
+  try {
+    startHealthServer();
+  } catch (err) {
+    console.warn('[Contexta Bot] Health server failed to start:', err);
+  }
 }
 
 start();
