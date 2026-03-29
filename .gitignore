@@ -6,6 +6,7 @@ dist/
 .env*.local
 .DS_Store
 .claude/
+.superpowers/
 .claire/
 .clone/
 *.tsbuildinfo
