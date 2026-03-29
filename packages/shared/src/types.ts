@@ -86,6 +86,83 @@ export const DEFAULT_PERSONALITY: Personality = {
   customInstructions: '',
 };
 
+// --- Knowledge Management Types ---
+
+export type KnowledgeEntryType = 'topic' | 'decision' | 'entity' | 'action_item' | 'reference';
+export type RelationshipType = 'relates_to' | 'supersedes' | 'part_of' | 'led_to';
+export type LinkCreator = 'pipeline' | 'admin' | 'correction';
+
+export interface KnowledgeEntry {
+  id: string;
+  serverId: string;
+  type: KnowledgeEntryType;
+  title: string;
+  content: string;
+  confidence: number;
+  sourceChannelId?: string;
+  sourceMessageIds: string[];
+  metadata: Record<string, unknown>;
+  isArchived: boolean;
+  isPinned: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface KnowledgeEntryLink {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  relationship: RelationshipType;
+  createdBy: LinkCreator;
+  createdAt: Date;
+}
+
+export interface ChannelSummary {
+  id: string;
+  serverId: string;
+  channelId: string;
+  periodStart: Date;
+  periodEnd: Date;
+  summary: string;
+  topics: string[];
+  decisions: string[];
+  openQuestions: string[];
+  actionItems: string[];
+  messageCount: number;
+  createdAt: Date;
+}
+
+export interface UserExpertise {
+  userId: string;
+  serverId: string;
+  topic: string;
+  score: number;
+  messageCount: number;
+  lastSeenAt: Date;
+}
+
+export interface MessageTags {
+  topics: string[];
+  isDecision: boolean;
+  isActionItem: boolean;
+  isReference: boolean;
+  confidence: number;
+}
+
+export interface KnowledgeConfig {
+  extractionEnabled: boolean;
+  summaryInterval: 'daily' | 'weekly';
+  crossChannelEnabled: boolean;
+  injectionAggressiveness: 'conservative' | 'moderate' | 'assertive';
+}
+
+export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
+  extractionEnabled: true,
+  summaryInterval: 'daily',
+  crossChannelEnabled: true,
+  injectionAggressiveness: 'assertive',
+};
+
 export function personalityToPrompt(p: Personality): string {
   const parts: string[] = [];
 
