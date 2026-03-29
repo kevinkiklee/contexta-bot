@@ -53,6 +53,30 @@ serverRoutes.put('/servers/:id/lore', async (c) => {
   return c.json({ success: true });
 });
 
+serverRoutes.get('/servers/:id/personality', async (c) => {
+  const serverId = c.req.param('id');
+  const botId = getBotId(c);
+  const result = await rawQuery(
+    'SELECT personality FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+    [serverId, botId]
+  );
+  return c.json({ personality: result.rows[0]?.personality || {} });
+});
+
+serverRoutes.put('/servers/:id/personality', async (c) => {
+  const serverId = c.req.param('id');
+  const botId = getBotId(c);
+  const { personality } = await c.req.json();
+  if (!personality) return c.json({ success: false, error: 'personality is required' }, 400);
+
+  await rawQuery(
+    `INSERT INTO server_settings (server_id, bot_id, personality) VALUES ($1, $2, $3)
+     ON CONFLICT (server_id, bot_id) DO UPDATE SET personality = $3`,
+    [serverId, botId, JSON.stringify(personality)]
+  );
+  return c.json({ success: true });
+});
+
 serverRoutes.get('/servers/:id/profile/:userId', async (c) => {
   const serverId = c.req.param('id');
   const userId = c.req.param('userId');

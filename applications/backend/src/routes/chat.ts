@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { getProvider } from '../services/llm/providerRegistry.js';
 import { rawQuery } from '@contexta/db';
 import { getBotId } from '../middleware/auth.js';
+import { DEFAULT_PERSONALITY, personalityToPrompt } from '@contexta/shared';
+import type { Personality } from '@contexta/shared';
 
 export const chatRoutes = new Hono();
 
@@ -17,9 +19,11 @@ chatRoutes.post('/chat', async (c) => {
   let activeModel = 'gemini-2.5-flash';
   let cacheId: string | null = null;
 
+  let personality: Personality = DEFAULT_PERSONALITY;
+
   try {
     const result = await rawQuery(
-      'SELECT active_model, context_cache_id, cache_expires_at FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+      'SELECT active_model, context_cache_id, cache_expires_at, personality FROM server_settings WHERE server_id = $1 AND bot_id = $2',
       [serverId, botId]
     );
     if (result.rows.length > 0) {
@@ -30,13 +34,19 @@ chatRoutes.post('/chat', async (c) => {
           cacheId = result.rows[0].context_cache_id;
         }
       }
+      if (result.rows[0].personality && typeof result.rows[0].personality === 'object') {
+        personality = { ...DEFAULT_PERSONALITY, ...result.rows[0].personality };
+      }
     }
   } catch (err) {
     console.warn('[chat] Failed to fetch server settings:', err);
   }
 
   const ai = getProvider(activeModel);
-  const prompt = systemPrompt || 'You are Contexta, an intelligent AI co-host for this Discord server.';
+  const baseLine = 'You are Contexta, an intelligent AI co-host for this Discord server.';
+  const personalityLine = personalityToPrompt(personality);
+  const loreLine = systemPrompt && systemPrompt !== baseLine ? systemPrompt.replace(baseLine, '').trim() : '';
+  const prompt = [baseLine, personalityLine, loreLine].filter(Boolean).join('\n\n');
   const response = await ai.generateChatResponse(prompt, chatHistory, {
     cacheId: cacheId || undefined,
     ttlMinutes: 60,

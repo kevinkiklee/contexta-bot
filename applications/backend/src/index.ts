@@ -8,6 +8,7 @@ import { embeddingRoutes } from './routes/embeddings.js';
 import { serverRoutes } from './routes/servers.js';
 import { attachmentRoutes } from './routes/attachments.js';
 import { cacheRoutes } from './routes/cache.js';
+import { messageRoutes } from './routes/messages.js';
 import { initRedis } from './lib/redis.js';
 
 dotenv.config();
@@ -31,6 +32,7 @@ apiApp.route('/', embeddingRoutes);
 apiApp.route('/', serverRoutes);
 apiApp.route('/', attachmentRoutes);
 apiApp.route('/', cacheRoutes);
+apiApp.route('/', messageRoutes);
 app.route('/api', apiApp);
 
 // Error handler

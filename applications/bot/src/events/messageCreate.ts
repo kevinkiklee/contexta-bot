@@ -1,4 +1,4 @@
-import { Message, Events } from 'discord.js';
+import { Message, Events, TextChannel } from 'discord.js';
 import { redisClient } from '../utils/redis.js';
 import { BOT_SENTINEL, sanitizeMessageContent, formatUserMessage } from '../utils/messageGuard.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
@@ -48,6 +48,20 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
   await deps.redis.sAdd('active_channels', channelId);
   await deps.redis.lTrim(redisKey, -50, -1);
   await deps.redis.set(`channel:${channelId}:server`, serverId);
+  if (message.channel instanceof TextChannel) {
+    await deps.redis.set(`channel:${channelId}:name`, message.channel.name);
+  }
+
+  // Persist to Postgres for dashboard history/search
+  const post = deps.postBackend || backendPost;
+  post('/api/messages', {
+    serverId,
+    channelId,
+    userId: message.author.id,
+    displayName,
+    content: message.content,
+    isBot: false,
+  }).catch((err) => console.warn('[messageCreate] Failed to persist message:', err));
 
   if (message.mentions.has(message.client.user.id)) {
     const history = await deps.redis.lRange(redisKey, 0, -1);
@@ -62,7 +76,6 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
         await message.channel.sendTyping();
       }
 
-      const post = deps.postBackend || backendPost;
       const get = deps.getBackend || backendGet;
 
       let systemPrompt = 'You are Contexta, an intelligent AI co-host for this Discord server. Provide helpful and concise responses. Do not prefix your own messages with [System/Contexta] as Discord formats it natively.';
@@ -85,6 +98,16 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
       const botFormattedMsg = `${BOT_SENTINEL}[System/Contexta]: ${response}`;
       await deps.redis.rPush(redisKey, botFormattedMsg);
       await deps.redis.lTrim(redisKey, -50, -1);
+
+      // Persist bot reply to Postgres
+      post('/api/messages', {
+        serverId,
+        channelId,
+        userId: message.client.user.id,
+        displayName: 'Contexta',
+        content: response,
+        isBot: true,
+      }).catch((err) => console.warn('[messageCreate] Failed to persist bot reply:', err));
     } catch (err) {
       console.error('[messageCreate] Error generating response:', err);
       await message.reply('I ran into an issue attempting to process that request.');

@@ -48,10 +48,15 @@ describe('messageCreate handler', () => {
     expect(redis.set).toHaveBeenCalledWith('channel:channel-789:server', 'guild-456');
   });
 
-  it('does not call backend when not mentioned', async () => {
+  it('persists message to Postgres but does not call chat when not mentioned', async () => {
     const message = createMockMessage();
     await execute(message, { redis, postBackend: mockPostBackend, getBackend: mockGetBackend });
-    expect(mockPostBackend).not.toHaveBeenCalled();
+    expect(mockPostBackend).toHaveBeenCalledWith('/api/messages', expect.objectContaining({
+      serverId: 'guild-456',
+      channelId: 'channel-789',
+      isBot: false,
+    }));
+    expect(mockPostBackend).not.toHaveBeenCalledWith('/api/chat', expect.anything());
   });
 
   it('calls backend and replies when mentioned', async () => {
@@ -138,7 +143,8 @@ describe('messageCreate handler', () => {
 
     await execute(message, { redis, postBackend: mockPostBackend, getBackend: mockGetBackend });
 
-    const chatHistory = mockPostBackend.mock.calls[0][1].chatHistory;
+    const chatCall = mockPostBackend.mock.calls.find((c: any) => c[0] === '/api/chat');
+    const chatHistory = chatCall![1].chatHistory;
     expect(chatHistory[0].role).toBe('user');
     expect(chatHistory[1].role).toBe('model');
   });
