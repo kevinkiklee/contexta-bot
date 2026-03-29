@@ -68,27 +68,15 @@ port_owner() {
 if $PG_UP && $REDIS_UP; then
   info "PostgreSQL and Redis are already running."
 else
-  # Check for port conflicts before starting containers
-  BLOCKED=false
-
-  if ! $PG_UP && port_in_use 5432; then
-    OWNER=$(port_owner 5432)
-    error "Port 5432 is already in use by $OWNER"
-    warn "Stop it with: kill \$(lsof -iTCP:5432 -sTCP:LISTEN -t)"
-    BLOCKED=true
-  fi
-
-  if ! $REDIS_UP && port_in_use 6379; then
-    OWNER=$(port_owner 6379)
-    error "Port 6379 is already in use by $OWNER"
-    warn "Stop it with: kill \$(lsof -iTCP:6379 -sTCP:LISTEN -t)"
-    BLOCKED=true
-  fi
-
-  if $BLOCKED; then
-    error "Free the ports above and re-run this script."
-    exit 1
-  fi
+  # Kill anything occupying required ports
+  for PORT in 5432 6379; do
+    if port_in_use "$PORT"; then
+      OWNER=$(port_owner "$PORT")
+      warn "Port $PORT in use by $OWNER — killing it..."
+      kill $(lsof -iTCP:"$PORT" -sTCP:LISTEN -t) 2>/dev/null || true
+      sleep 1
+    fi
+  done
 
   info "Starting PostgreSQL and Redis..."
   docker compose up -d --wait
