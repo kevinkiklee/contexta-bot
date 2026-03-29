@@ -93,7 +93,7 @@ async function start() {
   await loadCommands();
   await loadEvents();
 
-  client.once('ready', async () => {
+  client.once('clientReady', async () => {
     try {
       await registerCommands();
     } catch (err) {
