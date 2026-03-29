@@ -10,26 +10,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ user, account }) {
-      if (!account?.access_token) return false;
-
-      const res = await fetch(`${DISCORD_API_BASE}/users/@me/guilds`, {
-        headers: { Authorization: `Bearer ${account.access_token}` },
-      });
-
-      if (!res.ok) {
-        console.error('[Auth] Failed to fetch guilds:', res.status);
+      if (!account?.access_token) {
+        console.error('[Auth] No access token in account');
         return false;
       }
 
-      const guilds = (await res.json()) as { id: string; permissions: string }[];
+      try {
+        const res = await fetch(`${DISCORD_API_BASE}/users/@me/guilds`, {
+          headers: { Authorization: `Bearer ${account.access_token}` },
+        });
 
-      await syncUserGuilds(pool, {
-        id: user.id!,
-        username: user.name ?? 'Unknown',
-        avatar_url: user.image ?? null,
-      }, guilds);
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          console.error(`[Auth] Failed to fetch guilds: ${res.status} ${body}`);
+          return false;
+        }
 
-      return true;
+        const guilds = (await res.json()) as { id: string; permissions: string }[];
+
+        await syncUserGuilds(pool, {
+          id: user.id!,
+          username: user.name ?? 'Unknown',
+          avatar_url: user.image ?? null,
+        }, guilds);
+
+        return true;
+      } catch (err) {
+        console.error('[Auth] Sign-in error:', err);
+        return false;
+      }
     },
   },
 });
