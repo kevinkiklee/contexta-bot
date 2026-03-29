@@ -2,6 +2,7 @@
   "name": "contexta",
   "private": true,
   "scripts": {
+    "dev": "./scripts/dev.sh",
     "dev:bot": "pnpm --filter @contexta/bot dev",
     "dev:backend": "pnpm --filter @contexta/backend dev",
     "dev:dashboard": "pnpm --filter @contexta/dashboard dev",
