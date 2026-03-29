@@ -5,15 +5,12 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
-const BACKEND_URL = (process.env.BACKEND_URL || 'http://127.0.0.1:6000').trim().replace(/\/$/, '');
+const BACKEND_URL = (process.env.BACKEND_URL || 'http://127.0.0.1:5010').trim().replace(/\/$/, '');
 const BOT_API_KEY = (process.env.BOT_API_KEY || 'test_bot_key').trim();
 
 async function request<T>(path: string, options: RequestInit): Promise<T> {
-  // Ensure path starts with /
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${BACKEND_URL}${cleanPath}`;
-  
-  console.log(`[BackendClient] Fetching: ${url}`);
   
   const res = await fetch(url, {
     ...options,
