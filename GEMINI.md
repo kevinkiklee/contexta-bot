@@ -5,10 +5,10 @@ This document outlines the architectural standards, development workflows, and s
 ## Project Architecture
 
 - **Monorepo Structure:** Managed via `pnpm` workspaces.
-  - `@contexta/bot` (`apps/bot`): Discord bot core. ESM-based (`"type": "module"`). **Imports must use `.js` extensions.**
-  - `@contexta/backend` (`apps/backend`): Hono-based API server for LLM processing and data.
-  - `@contexta/dashboard` (`apps/dashboard`): Next.js 15 (App Router) management dashboard with NextAuth (Discord).
-  - `@contexta/website` (`apps/website`): Next.js 15 marketing site.
+  - `@contexta/bot` (`applications/bot`): Discord bot core. ESM-based (`"type": "module"`). **Imports must use `.js` extensions.**
+  - `@contexta/backend` (`applications/backend`): Hono-based API server for LLM processing and data.
+  - `@contexta/dashboard` (`applications/dashboard`): Next.js 15 (App Router) management dashboard with NextAuth (Discord).
+  - `@contexta/website` (`applications/website`): Next.js 15 marketing site.
   - `@contexta/db` (`packages/db`): Shared Drizzle ORM schema and PostgreSQL client (with `pgvector` support).
   - `@contexta/shared` (`packages/shared`): Cross-app types, constants, and Zod validation.
   - `@contexta/ui` (`packages/ui`): Shared React components.
@@ -29,7 +29,7 @@ To avoid `EADDRINUSE` conflicts during local development, the following port ass
 | **Bot Health** | 5011 | `pnpm dev:bot` |
 
 ### Port Conflict Resilience
-The Bot's health server (`apps/bot/src/utils/httpServer.ts`) includes an `EADDRINUSE` error handler. It will log a warning and allow the bot to continue operating even if the health port is blocked, ensuring high availability of the primary Discord functionality.
+The Bot's health server (`applications/bot/src/utils/httpServer.ts`) includes an `EADDRINUSE` error handler. It will log a warning and allow the bot to continue operating even if the health port is blocked, ensuring high availability of the primary Discord functionality.
 
 ## Development Workflows
 
@@ -42,10 +42,10 @@ The Bot's health server (`apps/bot/src/utils/httpServer.ts`) includes an `EADDRI
 
 ## Testing
 
-- **Bot:** `apps/bot/src/tests/` (Unit, Component, Integration).
+- **Bot:** `applications/bot/src/tests/` (Unit, Component, Integration).
   - `pnpm test:bot` (Unit/Component)
   - `pnpm --filter @contexta/bot test:integration` (Requires `TEST_DATABASE_URL`)
-- **Dashboard:** `apps/dashboard/src/tests/`.
+- **Dashboard:** `applications/dashboard/src/tests/`.
   - `pnpm test:dashboard`
 - **Global:** `pnpm test` runs all package tests.
 
@@ -58,6 +58,6 @@ The Bot's health server (`apps/bot/src/utils/httpServer.ts`) includes an `EADDRI
 ## Coding Standards
 
 - **Type Safety:** Strict TypeScript usage is mandatory.
-- **ESM Imports:** In `apps/bot`, always append `.js` to relative imports.
+- **ESM Imports:** In `applications/bot`, always append `.js` to relative imports.
 - **Error Handling:** Use centralized middleware in the backend and graceful degradation in the bot.
 - **Security:** Never hardcode secrets. Internal Bot-to-Backend calls must use `BOT_API_KEY`.

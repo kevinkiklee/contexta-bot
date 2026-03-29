@@ -40,9 +40,5 @@ export const pool = new Pool({
 export const db = drizzle(pool, { schema });
 
 export async function rawQuery(text: string, params?: any[]) {
-  const start = Date.now();
-  const res = await pool.query(text, params);
-  const duration = Date.now() - start;
-  console.log(`[DB] Executed query - Duration: ${duration}ms, Rows: ${res.rowCount}`);
-  return res;
+  return pool.query(text, params);
 }

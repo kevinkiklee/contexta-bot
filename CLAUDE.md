@@ -12,10 +12,10 @@ This is a pnpm workspace monorepo with 4 apps and 3 packages:
 
 | Package | Path | Purpose | Deploy |
 |---------|------|---------|--------|
-| @contexta/bot | apps/bot/ | Discord bot | Railway |
-| @contexta/backend | apps/backend/ | API server (Hono) | Railway |
-| @contexta/dashboard | apps/dashboard/ | Admin UI (Next.js) | Vercel |
-| @contexta/website | apps/website/ | Marketing site (Next.js) | Vercel |
+| @contexta/bot | applications/bot/ | Discord bot | Railway |
+| @contexta/backend | applications/backend/ | API server (Hono) | Railway |
+| @contexta/dashboard | applications/dashboard/ | Admin UI (Next.js) | Vercel |
+| @contexta/website | applications/website/ | Marketing site (Next.js) | Vercel |
 | @contexta/db | packages/db/ | Drizzle schema + DB client | Library |
 | @contexta/shared | packages/shared/ | Types, constants, validation | Library |
 | @contexta/ui | packages/ui/ | Shared React components | Library |
@@ -53,9 +53,9 @@ pnpm --filter @contexta/backend <command>
 - `pnpm test:bot` — bot unit + component tests (Vitest)
 - `pnpm test:dashboard` — dashboard tests (Vitest)
 - `pnpm --filter @contexta/bot test:integration` — integration tests (requires `TEST_DATABASE_URL`)
-- Bot tests: `apps/bot/src/tests/{unit,component,integration}/`
-- Dashboard tests: `apps/dashboard/src/tests/`
-- Shared helpers in `apps/bot/src/tests/helpers/`
+- Bot tests: `applications/bot/src/tests/{unit,component,integration}/`
+- Dashboard tests: `applications/dashboard/src/tests/`
+- Shared helpers in `applications/bot/src/tests/helpers/`
 
 ## Environment Variables
 
@@ -69,7 +69,7 @@ Key variables:
 
 ## Architecture
 
-### Bot (apps/bot/)
+### Bot (applications/bot/)
 
 ES module TypeScript project (`"type": "module"`, `module: Node16`). Imports must use `.js` extensions.
 
@@ -81,15 +81,15 @@ LLM providers: `src/llm/` with IAIProvider interface, GeminiProvider, OpenAIProv
 
 Slash commands in `src/commands/`: ask, summarize, recall, settings, lore, profile.
 
-### Backend (apps/backend/)
+### Backend (applications/backend/)
 
 Minimal Hono scaffold with `/health` endpoint. Will be built out in Sub-spec 2 with API routes, LLM service migration, and auth middleware.
 
-### Dashboard (apps/dashboard/)
+### Dashboard (applications/dashboard/)
 
 Next.js 15 App Router with NextAuth (Discord OAuth). Pages: server list, server overview, settings, lore, channel history.
 
-### Website (apps/website/)
+### Website (applications/website/)
 
 Next.js 15 marketing site scaffold. Placeholder content — will be built out in Sub-spec 3.
 
