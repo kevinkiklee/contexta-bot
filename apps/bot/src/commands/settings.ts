@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
-import { query } from '../db/index.js';
-import { getProvider } from '../llm/providerRegistry.js';
+import { backendPut, backendPost, backendDelete } from '../lib/backendClient.js';
 
 export const data = new SlashCommandBuilder()
   .setName('settings')
@@ -48,27 +47,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const modelName = interaction.options.getString('provider', true);
 
     try {
-      getProvider(modelName);
+      await backendPut(`/api/servers/${serverId}/settings/model`, { model: modelName });
+      await interaction.reply({ content: `Active model switched to **${modelName}**.`, ephemeral: true });
     } catch (err) {
-      await interaction.reply({
-        content: `Cannot switch to ${modelName} — ${(err as Error).message}`,
-        ephemeral: true,
-      });
-      return;
+      await interaction.reply({ content: `Cannot switch to ${modelName} — ${(err as Error).message}`, ephemeral: true });
     }
-
-    await query(
-      `INSERT INTO server_settings (server_id, active_model)
-       VALUES ($1, $2)
-       ON CONFLICT (server_id)
-       DO UPDATE SET active_model = $2`,
-      [serverId, modelName]
-    );
-
-    await interaction.reply({
-      content: `Active model switched to **${modelName}**.`,
-      ephemeral: true,
-    });
     return;
   }
 
@@ -76,50 +59,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const action = interaction.options.getString('action', true);
 
     if (action === 'clear') {
-      await query(
-        'UPDATE server_settings SET context_cache_id = NULL, cache_expires_at = NULL WHERE server_id = $1',
-        [serverId]
-      );
+      await backendDelete(`/api/cache/${serverId}`);
       await interaction.reply({ content: 'Context cache cleared.', ephemeral: true });
       return;
     }
 
     if (action === 'refresh') {
-      const result = await query(
-        'SELECT server_lore, active_model FROM server_settings WHERE server_id = $1',
-        [serverId]
-      );
-
-      if (result.rows.length === 0 || !result.rows[0].server_lore) {
-        await interaction.reply({
-          content: 'No server lore to cache. Use `/lore update` first.',
-          ephemeral: true,
-        });
-        return;
+      try {
+        await backendPost('/api/cache/refresh', { serverId });
+        await interaction.reply({ content: 'Context cache refreshed (expires in 60 minutes).', ephemeral: true });
+      } catch (err) {
+        await interaction.reply({ content: (err as Error).message, ephemeral: true });
       }
-
-      const { server_lore, active_model } = result.rows[0];
-
-      if (!active_model.startsWith('gemini-')) {
-        await interaction.reply({
-          content: 'Context caching is only available with Gemini models.',
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const ai = getProvider(active_model);
-      const cacheId = await ai.createServerContextCache(server_lore, 60);
-
-      await query(
-        `UPDATE server_settings SET context_cache_id = $1, cache_expires_at = NOW() + INTERVAL '60 minutes' WHERE server_id = $2`,
-        [cacheId, serverId]
-      );
-
-      await interaction.reply({
-        content: 'Context cache refreshed (expires in 60 minutes).',
-        ephemeral: true,
-      });
     }
   }
 }

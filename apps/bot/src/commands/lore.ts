@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
-import { query } from '../db/index.js';
+import { backendGet, backendPut } from '../lib/backendClient.js';
 
 export const data = new SlashCommandBuilder()
   .setName('lore')
@@ -28,15 +28,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const serverId = interaction.guildId!;
 
   if (action === 'view') {
-    const result = await query(
-      'SELECT server_lore FROM server_settings WHERE server_id = $1',
-      [serverId]
-    );
-
-    if (result.rows.length === 0 || !result.rows[0].server_lore) {
+    const { lore } = await backendGet<{ lore: string | null }>(`/api/servers/${serverId}/lore`);
+    if (!lore) {
       await interaction.reply({ content: 'No lore configured for this server.', ephemeral: true });
     } else {
-      await interaction.reply({ content: result.rows[0].server_lore, ephemeral: true });
+      await interaction.reply({ content: lore, ephemeral: true });
     }
     return;
   }
@@ -48,14 +44,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    await query(
-      `INSERT INTO server_settings (server_id, server_lore, context_cache_id, cache_expires_at)
-       VALUES ($1, $2, NULL, NULL)
-       ON CONFLICT (server_id)
-       DO UPDATE SET server_lore = $2, context_cache_id = NULL, cache_expires_at = NULL`,
-      [serverId, text]
-    );
-
+    await backendPut(`/api/servers/${serverId}/lore`, { text });
     await interaction.reply({ content: 'Server lore updated successfully.', ephemeral: true });
   }
 }

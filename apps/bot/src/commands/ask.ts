@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
-import { query } from '../db/index.js';
-import { getProvider } from '../llm/providerRegistry.js';
+import { backendPost, backendGet } from '../lib/backendClient.js';
 
 export const data = new SlashCommandBuilder()
   .setName('ask')
@@ -27,33 +26,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: isPrivate });
 
   try {
-    const serverId = interaction.guildId;
-    let activeModel = 'gemini-2.5-flash';
-    let serverLore: string | null = null;
+    const serverId = interaction.guildId || '';
 
-    if (serverId) {
-      const result = await query(
-        'SELECT active_model, server_lore FROM server_settings WHERE server_id = $1',
-        [serverId]
-      );
-      if (result.rows.length > 0) {
-        activeModel = result.rows[0].active_model || activeModel;
-        serverLore = result.rows[0].server_lore;
-      }
-    }
-
-    const ai = getProvider(activeModel);
+    const { lore } = await backendGet<{ lore: string | null }>(`/api/servers/${serverId}/lore`);
 
     let systemPrompt = 'You are Contexta, an intelligent AI co-host for this Discord server. Provide helpful and concise responses.';
-    if (serverLore) {
-      systemPrompt += `\n\nServer context and lore:\n${serverLore}`;
+    if (lore) {
+      systemPrompt += `\n\nServer context and lore:\n${lore}`;
     }
 
-    const chatHistory = [
-      { role: 'user' as const, parts: [{ text: userQuery }] },
-    ];
-
-    const response = await ai.generateChatResponse(systemPrompt, chatHistory, { ttlMinutes: 60 });
+    const { response } = await backendPost<{ response: string }>('/api/chat', {
+      serverId,
+      systemPrompt,
+      chatHistory: [{ role: 'user', parts: [{ text: userQuery }] }],
+    });
 
     if (response.length > 2000) {
       await interaction.editReply(response.substring(0, 2000));
@@ -61,7 +47,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       await interaction.editReply(response);
     }
   } catch (err) {
-    console.error('[ask] Error generating response:', err);
+    console.error('[ask] Error:', err);
     await interaction.editReply('I ran into an issue attempting to process that request.');
   }
 }

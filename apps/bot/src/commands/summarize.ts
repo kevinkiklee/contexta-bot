@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, SnowflakeUtil, TextChannel } from 'discord.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
-import { query } from '../db/index.js';
-import { getProvider } from '../llm/providerRegistry.js';
+import { backendPost } from '../lib/backendClient.js';
 
 export const data = new SlashCommandBuilder()
   .setName('summarize')
@@ -56,14 +55,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const settingsResult = await query(
-      'SELECT active_model FROM server_settings WHERE server_id = $1',
-      [interaction.guildId]
-    );
-    const activeModel = settingsResult.rows[0]?.active_model || 'gemini-2.5-flash';
-    const ai = getProvider(activeModel);
-
-    const summary = await ai.summarizeText(formatted);
+    const { summary } = await backendPost<{ summary: string }>('/api/summarize', {
+      serverId: interaction.guildId,
+      text: formatted,
+    });
 
     if (summary.length > 2000) {
       await interaction.editReply(summary.substring(0, 2000));
