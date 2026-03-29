@@ -24,15 +24,18 @@ const vector = customType<{ data: number[]; driverParam: string }>({
   },
 });
 
-export const serverSettings = pgTable('server_settings', {
-  serverId: varchar('server_id', { length: 255 }).primaryKey(),
+export const serverSettings = pgTable('server_settings', (t) => ({
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  botId: varchar('bot_id', { length: 255 }).notNull().default('unknown'),
   activeModel: varchar('active_model', { length: 50 }).default('gemini-2.5-flash'),
   serverLore: text('server_lore'),
   contextCacheId: varchar('context_cache_id', { length: 255 }),
   cacheExpiresAt: timestamp('cache_expires_at'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}), (table) => [
+  primaryKey({ columns: [table.serverId, table.botId] }),
+]);
 
 export const globalUsers = pgTable('global_users', {
   userId: varchar('user_id', { length: 255 }).primaryKey(),
@@ -42,7 +45,7 @@ export const globalUsers = pgTable('global_users', {
 });
 
 export const serverMembers = pgTable('server_members', (t) => ({
-  serverId: varchar('server_id', { length: 255 }).references(() => serverSettings.serverId),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
   userId: varchar('user_id', { length: 255 }).references(() => globalUsers.userId),
   inferredContext: text('inferred_context'),
   preferences: jsonb('preferences').default('{}'),

@@ -66,6 +66,9 @@ Key variables:
 - `GEMINI_API_KEY` — Google Gemini API key
 - `DATABASE_URL` — PostgreSQL connection string (pgvector must be enabled)
 - `REDIS_URL` — Redis connection string
+- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` — OAuth app for dashboard login
+- `AUTH_SECRET` — NextAuth session encryption secret
+- `BOTS` — Multi-bot config, format: `"Dev:123456,Prod:789012"` (optional)
 
 ## Architecture
 
@@ -87,7 +90,15 @@ Minimal Hono scaffold with `/health` endpoint. Will be built out in Sub-spec 2 w
 
 ### Dashboard (applications/dashboard/)
 
-Next.js 15 App Router with NextAuth (Discord OAuth). Pages: server list, server overview, settings, lore, channel history.
+Next.js 15 App Router with NextAuth v5 (Discord OAuth). Tailwind CSS v4 with CSS-based theme config (no `tailwind.config.ts` — all theming via `@theme` in `globals.css`).
+
+Multi-bot support: `BOTS` env var (`"Dev:123,Prod:456"`) parsed by `lib/bots.ts`, selected via `bot_id` cookie managed by `lib/bot-cookie.ts`. Bot selector hidden when only one bot configured.
+
+Pages: server list, server overview, settings (model selection), lore editor, channel history.
+
+Lib layer: `auth.ts` / `auth.config.ts` (NextAuth with Discord), `auth-helpers.ts` (permission checks + guild sync), `queries.ts` (DB/Redis queries), `db.ts` (pg Pool), `redis.ts` (ioredis), `bots.ts` + `bot-cookie.ts` (bot config).
+
+Tests: Vitest — `src/tests/unit/` with `auth-helpers.test.ts` (12 tests) and `queries.test.ts` (12 tests).
 
 ### Website (applications/website/)
 

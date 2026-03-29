@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initRedis } from './utils/redis.js';
 import { startHealthServer } from './utils/httpServer.js';
+import { rawQuery } from '@contexta/db';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env') });
 
@@ -99,8 +100,41 @@ async function start() {
     } catch (err) {
       console.error('[Loader] Failed to register commands:', err);
     }
+
+    // Sync guild membership to server_settings so the dashboard
+    // only shows servers where the bot is actually installed.
+    const botId = process.env.BOT_CLIENT_ID;
+    if (!botId) {
+      console.warn('[Sync] BOT_CLIENT_ID not set, skipping guild sync to server_settings.');
+    } else {
+      try {
+        const guildIds = [...client.guilds.cache.keys()];
+        if (guildIds.length > 0) {
+          // $1 = botId, then $2..$N = guildIds
+          const values = guildIds.map((_, i) => `($${i + 2}, $1, true)`).join(', ');
+          await rawQuery(
+            `INSERT INTO server_settings (server_id, bot_id, is_active) VALUES ${values}
+             ON CONFLICT (server_id, bot_id) DO UPDATE SET is_active = true`,
+            [botId, ...guildIds]
+          );
+        }
+        // Deactivate servers this bot is no longer in
+        const deactivateParams: unknown[] = [botId];
+        let deactivateWhere = `WHERE bot_id = $1 AND is_active = true`;
+        if (guildIds.length > 0) {
+          const placeholders = guildIds.map((_, i) => `$${i + 2}`).join(', ');
+          deactivateWhere += ` AND server_id NOT IN (${placeholders})`;
+          deactivateParams.push(...guildIds);
+        }
+        await rawQuery(`UPDATE server_settings SET is_active = false ${deactivateWhere}`, deactivateParams);
+        console.log(`[Sync] Synced ${guildIds.length} guild(s) for bot ${botId}.`);
+      } catch (err) {
+        console.error('[Sync] Failed to sync guilds:', err);
+      }
+    }
     const healthPort = process.env.PORT || '3000';
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:5000';
     const guilds = client.guilds.cache.size;
     const commands = (client as any).commands.size;
 
@@ -113,6 +147,7 @@ async function start() {
     console.log(`║  Commands   : ${String(commands).padEnd(35)}║`);
     console.log(`║  Health     : http://localhost:${healthPort}/health${' '.repeat(Math.max(0, 35 - 22 - healthPort.length))}║`);
     console.log(`║  Backend    : ${backendUrl.padEnd(35)}║`);
+    console.log(`║  Dashboard  : ${dashboardUrl.padEnd(35)}║`);
     console.log(`║  Redis      : ${(process.env.REDIS_URL || 'redis://localhost:6379').padEnd(35)}║`);
     console.log('╚══════════════════════════════════════════════════╝');
     console.log('');

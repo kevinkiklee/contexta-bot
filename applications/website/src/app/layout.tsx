@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { themeScript } from '@contexta/ui';
 import './globals.css';
+
+const themeScript = `(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(s==='dark'||(!s&&d)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: 'Contexta — AI Co-Host for Discord',

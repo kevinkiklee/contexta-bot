@@ -12,45 +12,46 @@ interface RedisReader {
 
 export async function getUserServers(
   db: DbClient,
-  userId: string
+  userId: string,
+  botId: string
 ): Promise<{ server_id: string; server_name: string | null; is_admin: boolean; active_model: string }[]> {
   const result = await db.query(
     `SELECT us.server_id, us.server_name, us.is_admin, ss.active_model
      FROM user_servers us
      INNER JOIN server_settings ss ON us.server_id = ss.server_id
-     WHERE us.user_id = $1
+     WHERE us.user_id = $1 AND ss.bot_id = $2 AND ss.is_active = true
      ORDER BY us.server_name NULLS LAST, us.server_id`,
-    [userId]
+    [userId, botId]
   );
   return result.rows as { server_id: string; server_name: string | null; is_admin: boolean; active_model: string }[];
 }
 
 // --- Server settings ---
 
-export async function getServerSettings(db: DbClient, serverId: string) {
+export async function getServerSettings(db: DbClient, serverId: string, botId: string) {
   const result = await db.query(
-    'SELECT server_id, active_model, is_active FROM server_settings WHERE server_id = $1',
-    [serverId]
+    'SELECT server_id, bot_id, active_model, is_active FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+    [serverId, botId]
   );
-  return (result.rows[0] as { server_id: string; active_model: string; is_active: boolean }) ?? null;
+  return (result.rows[0] as { server_id: string; bot_id: string; active_model: string; is_active: boolean }) ?? null;
 }
 
-export async function updateServerModel(db: DbClient, serverId: string, model: string): Promise<void> {
-  await db.query('UPDATE server_settings SET active_model = $1 WHERE server_id = $2', [model, serverId]);
+export async function updateServerModel(db: DbClient, serverId: string, botId: string, model: string): Promise<void> {
+  await db.query('UPDATE server_settings SET active_model = $1 WHERE server_id = $2 AND bot_id = $3', [model, serverId, botId]);
 }
 
 // --- Lore ---
 
-export async function getServerLore(db: DbClient, serverId: string): Promise<string | null> {
+export async function getServerLore(db: DbClient, serverId: string, botId: string): Promise<string | null> {
   const result = await db.query(
-    'SELECT server_lore FROM server_settings WHERE server_id = $1',
-    [serverId]
+    'SELECT server_lore FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+    [serverId, botId]
   );
   return (result.rows[0] as { server_lore: string | null })?.server_lore ?? null;
 }
 
-export async function updateServerLore(db: DbClient, serverId: string, lore: string): Promise<void> {
-  await db.query('UPDATE server_settings SET server_lore = $1 WHERE server_id = $2', [lore, serverId]);
+export async function updateServerLore(db: DbClient, serverId: string, botId: string, lore: string): Promise<void> {
+  await db.query('UPDATE server_settings SET server_lore = $1 WHERE server_id = $2 AND bot_id = $3', [lore, serverId, botId]);
 }
 
 // --- Channel history ---

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getProvider } from '../services/llm/providerRegistry.js';
 import { rawQuery } from '@contexta/db';
+import { getBotId } from '../middleware/auth.js';
 
 export const attachmentRoutes = new Hono();
 
@@ -12,8 +13,9 @@ attachmentRoutes.post('/attachments/describe', async (c) => {
 
   let activeModel = 'gemini-2.5-flash';
   if (serverId) {
+    const botId = getBotId(c);
     try {
-      const result = await rawQuery('SELECT active_model FROM server_settings WHERE server_id = $1', [serverId]);
+      const result = await rawQuery('SELECT active_model FROM server_settings WHERE server_id = $1 AND bot_id = $2', [serverId, botId]);
       if (result.rows.length > 0) activeModel = result.rows[0].active_model || activeModel;
     } catch { /* use default */ }
   }

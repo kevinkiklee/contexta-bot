@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getProvider } from '../services/llm/providerRegistry.js';
 import { rawQuery } from '@contexta/db';
+import { getBotId } from '../middleware/auth.js';
 
 export const chatRoutes = new Hono();
 
@@ -12,13 +13,14 @@ chatRoutes.post('/chat', async (c) => {
     return c.json({ success: false, error: 'serverId and chatHistory are required' }, 400);
   }
 
+  const botId = getBotId(c);
   let activeModel = 'gemini-2.5-flash';
   let cacheId: string | null = null;
 
   try {
     const result = await rawQuery(
-      'SELECT active_model, context_cache_id, cache_expires_at FROM server_settings WHERE server_id = $1',
-      [serverId]
+      'SELECT active_model, context_cache_id, cache_expires_at FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+      [serverId, botId]
     );
     if (result.rows.length > 0) {
       activeModel = result.rows[0].active_model || activeModel;
@@ -51,11 +53,12 @@ chatRoutes.post('/summarize', async (c) => {
     return c.json({ success: false, error: 'serverId and text are required' }, 400);
   }
 
+  const botId = getBotId(c);
   let activeModel = 'gemini-2.5-flash';
   try {
     const result = await rawQuery(
-      'SELECT active_model FROM server_settings WHERE server_id = $1',
-      [serverId]
+      'SELECT active_model FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+      [serverId, botId]
     );
     if (result.rows.length > 0) {
       activeModel = result.rows[0].active_model || activeModel;

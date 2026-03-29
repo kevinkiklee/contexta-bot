@@ -12,6 +12,7 @@ async function request<T>(path: string, options: RequestInit): Promise<T> {
     signal: AbortSignal.timeout(30_000),
     headers: {
       'Authorization': `Bearer ${BOT_API_KEY}`,
+      ...(process.env.BOT_CLIENT_ID ? { 'X-Bot-Id': process.env.BOT_CLIENT_ID } : {}),
       ...options.headers,
     },
   });

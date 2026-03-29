@@ -10,6 +10,8 @@ import {
   getChannelHistory,
 } from '@/lib/queries';
 
+const BOT_ID = 'bot-123';
+
 describe('getUserServers', () => {
   it('returns servers where bot is present (inner join with server_settings)', async () => {
     const db = createMockDb();
@@ -21,13 +23,13 @@ describe('getUserServers', () => {
       rowCount: 2,
     });
 
-    const result = await getUserServers(db, 'user-1');
+    const result = await getUserServers(db, 'user-1', BOT_ID);
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({ server_id: 's1', is_admin: true, active_model: 'gemini-2.5-flash' });
     expect(db.query).toHaveBeenCalledWith(
       expect.stringContaining('INNER JOIN server_settings'),
-      ['user-1']
+      ['user-1', BOT_ID]
     );
   });
 
@@ -35,7 +37,7 @@ describe('getUserServers', () => {
     const db = createMockDb();
     db.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const result = await getUserServers(db, 'user-1');
+    const result = await getUserServers(db, 'user-1', BOT_ID);
     expect(result).toEqual([]);
   });
 });
@@ -44,29 +46,29 @@ describe('getServerSettings', () => {
   it('returns server settings row', async () => {
     const db = createMockDb();
     db.query.mockResolvedValueOnce({
-      rows: [{ server_id: 's1', active_model: 'gemini-2.5-flash', is_active: true }],
+      rows: [{ server_id: 's1', bot_id: BOT_ID, active_model: 'gemini-2.5-flash', is_active: true }],
       rowCount: 1,
     });
 
-    const result = await getServerSettings(db, 's1');
-    expect(result).toEqual({ server_id: 's1', active_model: 'gemini-2.5-flash', is_active: true });
+    const result = await getServerSettings(db, 's1', BOT_ID);
+    expect(result).toEqual({ server_id: 's1', bot_id: BOT_ID, active_model: 'gemini-2.5-flash', is_active: true });
   });
 
   it('returns null when server not found', async () => {
     const db = createMockDb();
-    const result = await getServerSettings(db, 's1');
+    const result = await getServerSettings(db, 's1', BOT_ID);
     expect(result).toBeNull();
   });
 });
 
 describe('updateServerModel', () => {
-  it('updates active_model for server', async () => {
+  it('updates active_model for server and bot', async () => {
     const db = createMockDb();
-    await updateServerModel(db, 's1', 'gemini-2.5-pro');
+    await updateServerModel(db, 's1', BOT_ID, 'gemini-2.5-pro');
 
     expect(db.query).toHaveBeenCalledWith(
       expect.stringContaining('UPDATE server_settings'),
-      ['gemini-2.5-pro', 's1']
+      ['gemini-2.5-pro', 's1', BOT_ID]
     );
   });
 });
@@ -76,7 +78,7 @@ describe('getServerLore', () => {
     const db = createMockDb();
     db.query.mockResolvedValueOnce({ rows: [{ server_lore: 'Be nice.' }], rowCount: 1 });
 
-    const result = await getServerLore(db, 's1');
+    const result = await getServerLore(db, 's1', BOT_ID);
     expect(result).toBe('Be nice.');
   });
 
@@ -84,7 +86,7 @@ describe('getServerLore', () => {
     const db = createMockDb();
     db.query.mockResolvedValueOnce({ rows: [{ server_lore: null }], rowCount: 1 });
 
-    const result = await getServerLore(db, 's1');
+    const result = await getServerLore(db, 's1', BOT_ID);
     expect(result).toBeNull();
   });
 });
@@ -92,11 +94,11 @@ describe('getServerLore', () => {
 describe('updateServerLore', () => {
   it('updates server_lore column', async () => {
     const db = createMockDb();
-    await updateServerLore(db, 's1', 'New lore text');
+    await updateServerLore(db, 's1', BOT_ID, 'New lore text');
 
     expect(db.query).toHaveBeenCalledWith(
       expect.stringContaining('UPDATE server_settings'),
-      ['New lore text', 's1']
+      ['New lore text', 's1', BOT_ID]
     );
   });
 });

@@ -27,13 +27,13 @@ describe('hasManageGuild', () => {
 describe('parseGuildPermissions', () => {
   it('returns guild entries with is_admin derived from permissions', () => {
     const guilds = [
-      { id: 'guild-1', permissions: '40' },
-      { id: 'guild-2', permissions: '2048' },
+      { id: 'guild-1', name: 'Test Guild 1', permissions: '40' },
+      { id: 'guild-2', name: 'Test Guild 2', permissions: '2048' },
     ];
     const result = parseGuildPermissions(guilds);
     expect(result).toEqual([
-      { serverId: 'guild-1', isAdmin: true },
-      { serverId: 'guild-2', isAdmin: false },
+      { serverId: 'guild-1', name: 'Test Guild 1', isAdmin: true },
+      { serverId: 'guild-2', name: 'Test Guild 2', isAdmin: false },
     ]);
   });
 
@@ -47,8 +47,8 @@ describe('syncUserGuilds', () => {
     const db = createMockDb();
     const user = { id: 'user-1', username: 'Alice', avatar_url: 'https://cdn.example.com/a.png' };
     const guilds = [
-      { id: 'guild-1', permissions: '40' },
-      { id: 'guild-2', permissions: '2048' },
+      { id: 'guild-1', name: 'Guild 1', permissions: '40' },
+      { id: 'guild-2', name: 'Guild 2', permissions: '2048' },
     ];
 
     await syncUserGuilds(db, user, guilds);

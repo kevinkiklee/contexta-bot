@@ -3,12 +3,12 @@
 
 @media (prefers-reduced-motion: no-preference) {
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -18,61 +18,93 @@
   }
 
   @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.95); }
+    from { opacity: 0; transform: scale(0.96); }
     to { opacity: 1; transform: scale(1); }
   }
 
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
   .animate-fade-in {
-    animation: fadeIn 300ms ease-out both;
+    animation: fadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 400ms ease-out both;
+    animation: fadeInUp 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-slide-in-left {
-    animation: slideInLeft 200ms ease-out both;
+    animation: slideInLeft 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-scale-in {
-    animation: scaleIn 300ms ease-out both;
+    animation: scaleIn 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-stagger > * {
     opacity: 0;
-    animation: fadeInUp 400ms ease-out both;
+    animation: fadeInUp 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .animate-stagger > *:nth-child(2) { animation-delay: 50ms; }
-  .animate-stagger > *:nth-child(3) { animation-delay: 100ms; }
-  .animate-stagger > *:nth-child(4) { animation-delay: 150ms; }
-  .animate-stagger > *:nth-child(5) { animation-delay: 200ms; }
-  .animate-stagger > *:nth-child(6) { animation-delay: 250ms; }
-  .animate-stagger > *:nth-child(7) { animation-delay: 300ms; }
-  .animate-stagger > *:nth-child(8) { animation-delay: 350ms; }
-  .animate-stagger > *:nth-child(9) { animation-delay: 400ms; }
-  .animate-stagger > *:nth-child(10) { animation-delay: 450ms; }
+  .animate-stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .animate-stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .animate-stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .animate-stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .animate-stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .animate-stagger > *:nth-child(7) { animation-delay: 360ms; }
+  .animate-stagger > *:nth-child(8) { animation-delay: 420ms; }
+  .animate-stagger > *:nth-child(9) { animation-delay: 480ms; }
+  .animate-stagger > *:nth-child(10) { animation-delay: 540ms; }
 
   .card-lift {
-    transition: transform 200ms ease, box-shadow 200ms ease;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 200ms ease;
   }
 
   .card-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1),
+                0 4px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+
+  :where(.dark) .card-lift:hover {
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4),
+                0 4px 10px -6px rgba(0, 0, 0, 0.3);
   }
 
   .icon-hover {
-    transition: transform 150ms ease;
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .icon-hover:hover {
-    transform: scale(1.05);
+    transform: scale(1.08);
+  }
+
+  .btn-press {
+    transition: transform 100ms ease, opacity 100ms ease;
   }
 
   .btn-press:active {
     transform: scale(0.97);
-    transition: transform 100ms ease;
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--bg-overlay) 0%,
+      var(--bg-raised) 50%,
+      var(--bg-overlay) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
   }
 }
