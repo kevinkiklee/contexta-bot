@@ -132,7 +132,7 @@ async function start() {
         console.error('[Sync] Failed to sync guilds:', err);
       }
     }
-    const healthPort = process.env.PORT || '3000';
+    const healthPort = process.env.BOT_HEALTH_PORT || '5011';
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
     const dashboardUrl = process.env.DASHBOARD_URL || 'http://localhost:5000';
     const guilds = client.guilds.cache.size;

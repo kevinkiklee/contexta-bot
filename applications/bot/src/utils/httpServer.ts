@@ -3,7 +3,7 @@ import http from 'http';
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export function startHealthServer(): http.Server {
-  const port = parseInt(process.env.PORT || '5011', 10);
+  const port = parseInt(process.env.BOT_HEALTH_PORT || '5011', 10);
 
   const server = http.createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
