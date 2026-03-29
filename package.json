@@ -6,6 +6,7 @@
     "dev:backend": "pnpm --filter @contexta/backend dev",
     "dev:dashboard": "pnpm --filter @contexta/dashboard dev",
     "dev:website": "pnpm --filter @contexta/website dev",
+    "start": "pnpm run dev:bot & pnpm run dev:backend",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:bot": "pnpm --filter @contexta/bot test",
