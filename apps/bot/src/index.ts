@@ -99,7 +99,23 @@ async function start() {
     } catch (err) {
       console.error('[Loader] Failed to register commands:', err);
     }
-    console.log(`[Contexta Bot] Boot sequence complete. System online.`);
+    const healthPort = process.env.PORT || '3000';
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    const guilds = client.guilds.cache.size;
+    const commands = (client as any).commands.size;
+
+    console.log('');
+    console.log('╔══════════════════════════════════════════════════╗');
+    console.log('║           Contexta Bot — System Online           ║');
+    console.log('╠══════════════════════════════════════════════════╣');
+    console.log(`║  Discord    : ${client.user!.tag.padEnd(35)}║`);
+    console.log(`║  Guilds     : ${String(guilds).padEnd(35)}║`);
+    console.log(`║  Commands   : ${String(commands).padEnd(35)}║`);
+    console.log(`║  Health     : http://localhost:${healthPort}/health${' '.repeat(Math.max(0, 35 - 22 - healthPort.length))}║`);
+    console.log(`║  Backend    : ${backendUrl.padEnd(35)}║`);
+    console.log(`║  Redis      : ${(process.env.REDIS_URL || 'redis://localhost:6379').padEnd(35)}║`);
+    console.log('╚══════════════════════════════════════════════════╝');
+    console.log('');
   });
 
   const token = process.env.DISCORD_TOKEN;
