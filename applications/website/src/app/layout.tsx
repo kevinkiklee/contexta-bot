@@ -1,20 +1,24 @@
 import type { Metadata } from 'next';
+import { Manrope } from 'next/font/google';
 import './globals.css';
 
-const themeScript = `(function(){try{var s=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(s==='dark'||(!s&&d)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`;
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'Contexta — AI Co-Host for Discord',
-  description: 'An intelligent AI agent that remembers your conversations and provides contextual assistance in Discord servers.',
+  title: 'Contexta — Your Server\'s Memory',
+  description: 'An AI Discord bot that remembers your conversations, learns your community, and builds knowledge over time.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body className="bg-bg text-text min-h-screen">{children}</body>
+    <html lang="en" className={manrope.variable}>
+      <body className="bg-bg text-text min-h-screen font-[family-name:var(--font-sans)]">
+        {children}
+      </body>
     </html>
   );
 }
