@@ -18,9 +18,9 @@ export default async function ServerLayout({
 
   if (!membership) {
     return (
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-error">Access Denied</h1>
-        <p className="text-text-muted mt-2">You are not a member of this server.</p>
+      <div className="rounded-xl border border-border bg-bg-raised p-8 text-center animate-fade-in">
+        <h1 className="text-xl font-bold text-error mb-2">Access Denied</h1>
+        <p className="text-text-muted">You are not a member of this server.</p>
       </div>
     );
   }

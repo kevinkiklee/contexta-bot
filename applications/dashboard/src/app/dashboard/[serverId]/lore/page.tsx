@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { checkServerAdmin } from '@/lib/auth-helpers';
 import { getServerLore, updateServerLore } from '@/lib/queries';
 import { pool } from '@/lib/db';
+import { LoreForm } from './lore-form';
 
 export default async function LorePage({
   params,
@@ -37,22 +38,12 @@ export default async function LorePage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Server Lore</h1>
-      <form action={handleUpdateLore} className="space-y-4 max-w-2xl">
-        <textarea
-          name="lore"
-          rows={12}
-          defaultValue={lore ?? ''}
-          placeholder="Enter your server's lore, rules, and themes..."
-          className="w-full rounded-lg bg-bg-raised border border-border p-3 text-text resize-y"
-        />
-        <button
-          type="submit"
-          className="rounded-lg bg-primary px-4 py-2 text-white font-medium hover:bg-primary-hover transition"
-        >
-          Save Lore
-        </button>
-      </form>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Server Lore</h1>
+        <p className="text-text-muted text-sm mt-1">Define the rules, themes, and personality for your server</p>
+      </div>
+
+      <LoreForm action={handleUpdateLore} defaultValue={lore ?? ''} />
     </div>
   );
 }

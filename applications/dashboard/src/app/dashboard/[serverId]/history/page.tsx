@@ -28,66 +28,78 @@ export default async function HistoryPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Conversation History</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Conversation History</h1>
+        <p className="text-text-muted text-sm mt-1">Browse recent conversations by channel</p>
+      </div>
 
       {channels.length === 0 ? (
-        <p className="text-text-muted">No conversation history found for this server.</p>
+        <div className="rounded-xl border border-border bg-bg-raised p-8 text-center">
+          <p className="text-text-muted">No conversation history found for this server.</p>
+        </div>
       ) : (
-        <div className="flex gap-6">
-          <nav className="w-48 shrink-0">
-            <h2 className="text-sm font-medium text-text-muted mb-2">Channels</h2>
-            <ul className="space-y-1">
-              {channels.map((ch) => (
-                <li key={ch}>
-                  <a
-                    href={`?channel=${ch}&page=1`}
-                    className={`block rounded px-3 py-1.5 text-sm transition ${
-                      ch === selectedChannel
-                        ? 'bg-bg-overlay text-text'
-                        : 'text-text-muted hover:text-text hover:bg-bg-raised'
-                    }`}
-                  >
-                    #{ch}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <>
+          {/* Channel tabs */}
+          <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
+            {channels.map((ch) => (
+              <a
+                key={ch}
+                href={`?channel=${ch}&page=1`}
+                className={`shrink-0 px-3 py-1.5 rounded-md text-sm transition ${
+                  ch === selectedChannel
+                    ? 'bg-primary text-white font-medium'
+                    : 'text-text-muted hover:text-text hover:bg-bg-raised'
+                }`}
+              >
+                #{ch}
+              </a>
+            ))}
+          </div>
 
-          <div className="flex-1 min-w-0">
+          {/* Messages */}
+          <div className="rounded-xl border border-border bg-bg-raised overflow-hidden">
             {messages.length === 0 ? (
-              <p className="text-text-muted">No messages in this channel.</p>
+              <div className="p-8 text-center">
+                <p className="text-text-muted">No messages in this channel.</p>
+              </div>
             ) : (
               <>
-                <ul className="space-y-2">
+                <ul className="divide-y divide-border">
                   {messages.map((msg, i) => (
-                    <li key={i} className="rounded bg-bg-raised px-3 py-2 text-sm font-mono break-all">
+                    <li key={i} className="px-4 py-3 text-sm font-mono break-all text-text-subtle">
                       {msg}
                     </li>
                   ))}
                 </ul>
-                <div className="mt-4 flex gap-2">
-                  {currentPage > 1 && (
-                    <a
-                      href={`?channel=${selectedChannel}&page=${currentPage - 1}`}
-                      className="rounded bg-bg-overlay px-3 py-1 text-sm hover:bg-border transition"
-                    >
-                      Previous
-                    </a>
-                  )}
-                  {messages.length === pageSize && (
-                    <a
-                      href={`?channel=${selectedChannel}&page=${currentPage + 1}`}
-                      className="rounded bg-bg-overlay px-3 py-1 text-sm hover:bg-border transition"
-                    >
-                      Next
-                    </a>
-                  )}
+                <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                  <div>
+                    {currentPage > 1 ? (
+                      <a
+                        href={`?channel=${selectedChannel}&page=${currentPage - 1}`}
+                        className="btn-press text-sm text-text-muted hover:text-text transition"
+                      >
+                        ← Previous
+                      </a>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+                  <span className="text-xs text-text-muted">Page {currentPage}</span>
+                  <div>
+                    {messages.length === pageSize && (
+                      <a
+                        href={`?channel=${selectedChannel}&page=${currentPage + 1}`}
+                        className="btn-press text-sm text-text-muted hover:text-text transition"
+                      >
+                        Next →
+                      </a>
+                    )}
+                  </div>
                 </div>
               </>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
