@@ -1,41 +1,99 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createMockInteraction } from '../helpers/mockDiscord.js';
+
+vi.mock('../../db/index.js', () => ({
+  query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+}));
+
+import { query } from '../../db/index.js';
 import { execute } from '../../commands/lore.js';
-import { PermissionFlagsBits } from 'discord.js';
 
-function createInteraction(hasAdminPerm: boolean | null) {
-  return {
-    options: {
-      getString: vi.fn().mockReturnValue('view'),
-    },
-    memberPermissions: hasAdminPerm === null
-      ? null
-      : { has: vi.fn().mockReturnValue(hasAdminPerm) },
-    reply: vi.fn().mockResolvedValue(undefined),
-  } as any;
-}
+const mockQuery = vi.mocked(query);
 
-describe('lore execute — permission enforcement', () => {
-  it('rejects with ephemeral error when memberPermissions is null', async () => {
-    const interaction = createInteraction(null);
+describe('lore command', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects non-admin users', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(false) },
+    });
     await execute(interaction);
     expect(interaction.reply).toHaveBeenCalledWith(
-      expect.objectContaining({ ephemeral: true, content: expect.stringContaining('permission') })
+      expect.objectContaining({ content: expect.stringContaining('permission'), ephemeral: true })
     );
   });
 
-  it('rejects with ephemeral error when user lacks Administrator', async () => {
-    const interaction = createInteraction(false);
+  it('view action returns lore when it exists', async () => {
+    mockQuery.mockResolvedValue({ rows: [{ server_lore: 'This is a fantasy server.' }], rowCount: 1 } as any);
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getString: vi.fn().mockImplementation((name: string) => {
+          if (name === 'action') return 'view';
+          return null;
+        }),
+      },
+    });
     await execute(interaction);
     expect(interaction.reply).toHaveBeenCalledWith(
-      expect.objectContaining({ ephemeral: true, content: expect.stringContaining('permission') })
+      expect.objectContaining({ content: expect.stringContaining('fantasy server'), ephemeral: true })
     );
   });
 
-  it('proceeds when user has Administrator', async () => {
-    const interaction = createInteraction(true);
+  it('view action reports when no lore is configured', async () => {
+    mockQuery.mockResolvedValue({ rows: [], rowCount: 0 } as any);
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getString: vi.fn().mockImplementation((name: string) => {
+          if (name === 'action') return 'view';
+          return null;
+        }),
+      },
+    });
     await execute(interaction);
-    const replyArg = interaction.reply.mock.calls[0][0];
-    const content = typeof replyArg === 'string' ? replyArg : replyArg.content;
-    expect(content).not.toContain('permission');
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('No lore configured'), ephemeral: true })
+    );
+  });
+
+  it('update action upserts lore and clears cache', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getString: vi.fn().mockImplementation((name: string) => {
+          if (name === 'action') return 'update';
+          if (name === 'text') return 'New lore content';
+          return null;
+        }),
+      },
+    });
+    await execute(interaction);
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO server_settings'),
+      expect.arrayContaining(['guild-456', 'New lore content'])
+    );
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('updated'), ephemeral: true })
+    );
+  });
+
+  it('update action rejects when no text is provided', async () => {
+    const interaction = createMockInteraction({
+      memberPermissions: { has: vi.fn().mockReturnValue(true) },
+      options: {
+        getString: vi.fn().mockImplementation((name: string) => {
+          if (name === 'action') return 'update';
+          if (name === 'text') return null;
+          return null;
+        }),
+      },
+    });
+    await execute(interaction);
+    expect(interaction.reply).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining('provide the lore text'), ephemeral: true })
+    );
   });
 });
