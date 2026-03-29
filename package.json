@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "./scripts/dev.sh",
+    "dev:all": "./scripts/dev.sh && pnpm run dev:backend & pnpm run dev:bot & pnpm run dev:dashboard & pnpm run dev:website & wait",
     "dev:bot": "pnpm --filter @contexta/bot dev",
     "dev:backend": "pnpm --filter @contexta/backend dev",
     "dev:dashboard": "pnpm --filter @contexta/dashboard dev",
