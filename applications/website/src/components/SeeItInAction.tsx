@@ -86,7 +86,7 @@ export default function SeeItInAction() {
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
               style={{ zIndex: 10 }}
-              viewBox="0 0 100 100"
+              viewBox="0 0 200 100"
               preserveAspectRatio="none"
             >
               <defs>
@@ -96,33 +96,33 @@ export default function SeeItInAction() {
                 </linearGradient>
               </defs>
               <path
-                d="M 70 82 C 85 60, 85 40, 55 22"
+                d="M 140 82 C 170 60, 170 40, 110 22"
                 fill="none"
                 stroke="url(#mem-line)"
-                strokeWidth="0.4"
+                strokeWidth="0.5"
                 opacity="0.6"
-                strokeDasharray="200"
-                strokeDashoffset="200"
+                strokeDasharray="300"
+                strokeDashoffset="300"
                 strokeLinecap="round"
               >
-                <animate attributeName="stroke-dashoffset" from="200" to="0" dur="1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
+                <animate attributeName="stroke-dashoffset" from="300" to="0" dur="1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
               </path>
               <path
-                d="M 70 82 C 85 60, 85 40, 55 22"
+                d="M 140 82 C 170 60, 170 40, 110 22"
                 fill="none"
                 stroke="url(#mem-line)"
-                strokeWidth="1.2"
+                strokeWidth="1.5"
                 opacity="0.15"
-                strokeDasharray="200"
-                strokeDashoffset="200"
+                strokeDasharray="300"
+                strokeDashoffset="300"
                 strokeLinecap="round"
               >
-                <animate attributeName="stroke-dashoffset" from="200" to="0" dur="1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
+                <animate attributeName="stroke-dashoffset" from="300" to="0" dur="1s" fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
               </path>
               <g opacity="0">
                 <animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="0.8s" fill="freeze" />
-                <rect x="72" y="48" width="22" height="7" rx="3.5" fill="#7c3aed" fillOpacity="0.2" stroke="#7c3aed" strokeOpacity="0.4" strokeWidth="0.2" />
-                <text x="83" y="53" textAnchor="middle" fill="#a78bfa" fontSize="3" fontFamily="var(--font-sans)">memory</text>
+                <rect x="155" y="46" width="36" height="9" rx="4.5" fill="#7c3aed" fillOpacity="0.2" stroke="#7c3aed" strokeOpacity="0.4" strokeWidth="0.3" />
+                <text x="173" y="53" textAnchor="middle" fill="#a78bfa" fontSize="5" fontFamily="var(--font-sans)">memory</text>
               </g>
             </svg>
           )}

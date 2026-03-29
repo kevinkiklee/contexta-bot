@@ -20,7 +20,7 @@ export default function DiscordChat({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl overflow-hidden shadow-2xl shadow-black/40 ${className}`} style={{ background: '#313338' }}>
+    <div className={`rounded-xl overflow-hidden shadow-2xl shadow-black/40 text-left ${className}`} style={{ background: '#313338' }}>
       {/* Title bar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/5" style={{ background: '#2b2d31' }}>
         <span className="text-[#80848e] text-sm font-semibold"># general</span>
@@ -61,7 +61,7 @@ export default function DiscordChat({
                       <span className="text-[11px]" style={{ color: '#80848e' }}>{msg.timestamp}</span>
                     )}
                   </div>
-                  <p className="text-sm mt-0.5 leading-relaxed" style={{ color: '#dbdee1' }}>
+                  <p className="text-sm mt-0.5 leading-relaxed text-left" style={{ color: '#dbdee1' }}>
                     {msg.content}
                   </p>
                 </div>
