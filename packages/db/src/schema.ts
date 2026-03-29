@@ -31,6 +31,7 @@ export const serverSettings = pgTable('server_settings', (t) => ({
   serverLore: text('server_lore'),
   contextCacheId: varchar('context_cache_id', { length: 255 }),
   cacheExpiresAt: timestamp('cache_expires_at'),
+  personality: jsonb('personality').default('{}'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
 }), (table) => [
@@ -75,10 +76,26 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const messages = pgTable('messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  channelId: varchar('channel_id', { length: 255 }).notNull(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  displayName: varchar('display_name', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  isBot: boolean('is_bot').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  embedding: vector('embedding'),
+}, (table) => [
+  index('idx_messages_channel_time').on(table.serverId, table.channelId, table.createdAt),
+  index('idx_messages_user').on(table.serverId, table.userId),
+]);
+
 export const userServers = pgTable('user_servers', (t) => ({
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   serverId: text('server_id').notNull(),
   isAdmin: boolean('is_admin').notNull().default(false),
+  serverName: text('server_name'),
 }), (table) => [
   primaryKey({ columns: [table.userId, table.serverId] }),
   index('idx_user_servers_server').on(table.serverId),

@@ -61,3 +61,75 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+export type Tone = 'friendly' | 'professional' | 'casual' | 'sarcastic' | 'academic';
+export type Formality = 'low' | 'medium' | 'high';
+export type Humor = 'none' | 'subtle' | 'moderate' | 'heavy';
+export type Verbosity = 'concise' | 'balanced' | 'detailed';
+export type LanguageStyle = 'plain' | 'technical' | 'eli5';
+
+export interface Personality {
+  tone: Tone;
+  formality: Formality;
+  humor: Humor;
+  verbosity: Verbosity;
+  languageStyle: LanguageStyle;
+  customInstructions: string;
+}
+
+export const DEFAULT_PERSONALITY: Personality = {
+  tone: 'friendly',
+  formality: 'medium',
+  humor: 'subtle',
+  verbosity: 'balanced',
+  languageStyle: 'plain',
+  customInstructions: '',
+};
+
+export function personalityToPrompt(p: Personality): string {
+  const parts: string[] = [];
+
+  const toneMap: Record<Tone, string> = {
+    friendly: 'Your tone is warm, approachable, and friendly.',
+    professional: 'Your tone is professional and measured.',
+    casual: 'Your tone is casual and laid-back, like chatting with a friend.',
+    sarcastic: 'Your tone is sarcastic and witty — use dry humor and playful jabs.',
+    academic: 'Your tone is scholarly and precise, like an informed lecturer.',
+  };
+  parts.push(toneMap[p.tone]);
+
+  const formalityMap: Record<Formality, string> = {
+    low: 'Use informal language — slang, abbreviations, and emojis are fine.',
+    medium: 'Balance casual and formal language depending on context.',
+    high: 'Use formal language — proper grammar, no slang or abbreviations.',
+  };
+  parts.push(formalityMap[p.formality]);
+
+  const humorMap: Record<Humor, string> = {
+    none: 'Stay serious — avoid jokes or humor.',
+    subtle: 'Use occasional light humor when appropriate.',
+    moderate: 'Be funny when you can — jokes and wordplay are welcome.',
+    heavy: 'Be as funny as possible — prioritize humor and entertainment.',
+  };
+  parts.push(humorMap[p.humor]);
+
+  const verbosityMap: Record<Verbosity, string> = {
+    concise: 'Keep responses short and to the point — a few sentences max.',
+    balanced: 'Give thorough but not excessive answers.',
+    detailed: 'Give comprehensive, in-depth responses with examples.',
+  };
+  parts.push(verbosityMap[p.verbosity]);
+
+  const styleMap: Record<LanguageStyle, string> = {
+    plain: 'Use plain, everyday language anyone can understand.',
+    technical: 'Use technical language and assume the audience is knowledgeable.',
+    eli5: 'Explain everything as simply as possible, like talking to a beginner.',
+  };
+  parts.push(styleMap[p.languageStyle]);
+
+  if (p.customInstructions.trim()) {
+    parts.push(`Additional instructions: ${p.customInstructions.trim()}`);
+  }
+
+  return parts.join(' ');
+}
