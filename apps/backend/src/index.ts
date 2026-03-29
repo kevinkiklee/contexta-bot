@@ -36,7 +36,7 @@ app.route('/api', apiApp);
 // Error handler
 app.onError(errorHandler);
 
-const port = parseInt(process.env.PORT || '4000', 10);
+const port = parseInt(process.env.PORT || '6000', 10);
 
 async function start() {
   await initRedis();

@@ -23,10 +23,10 @@ To avoid `EADDRINUSE` conflicts during local development, the following port ass
 
 | Service | Port | Command |
 | :--- | :--- | :--- |
-| **Dashboard** | 3000 | `pnpm dev:dashboard` |
-| **Website** | 3001 | `pnpm dev:website` |
-| **Backend** | 4000 | `pnpm dev:backend` |
-| **Bot Health** | 3005 | `pnpm dev:bot` |
+| **Dashboard** | 5000 | `pnpm dev:dashboard` |
+| **Website** | 5001 | `pnpm dev:website` |
+| **Backend** | 6000 | `pnpm dev:backend` |
+| **Bot Health** | 6005 | `pnpm dev:bot` |
 
 ### Port Conflict Resilience
 The Bot's health server (`apps/bot/src/utils/httpServer.ts`) includes an `EADDRINUSE` error handler. It will log a warning and allow the bot to continue operating even if the health port is blocked, ensuring high availability of the primary Discord functionality.

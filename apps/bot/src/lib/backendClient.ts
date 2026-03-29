@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../.env') });
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:6000';
 const BOT_API_KEY = process.env.BOT_API_KEY || '';
 
 export async function backendPost<T = any>(path: string, body: Record<string, unknown>): Promise<T> {
