@@ -1,24 +1,26 @@
-import { auth, signOut } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getUserServers } from '@/lib/queries';
+import { pool } from '@/lib/db';
+import { Sidebar } from './sidebar';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect('/');
 
+  const servers = await getUserServers(pool, session.user.id!);
+
   return (
-    <div className="min-h-screen">
-      <nav className="border-b border-border px-6 py-4 flex items-center justify-between">
-        <a href="/dashboard" className="text-xl font-bold">Contexta</a>
-        <div className="flex items-center gap-4">
-          <span className="text-text-muted text-sm">{session.user.name}</span>
-          <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
-            <button type="submit" className="text-sm text-text-muted hover:text-text transition">
-              Sign out
-            </button>
-          </form>
+    <div className="flex min-h-screen">
+      <Sidebar
+        servers={servers}
+        userName={session.user.name || 'User'}
+      />
+      <main className="flex-1 min-w-0 p-8">
+        <div className="max-w-4xl animate-fade-in">
+          {children}
         </div>
-      </nav>
-      <main className="p-6">{children}</main>
+      </main>
     </div>
   );
 }
