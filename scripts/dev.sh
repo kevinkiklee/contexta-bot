@@ -45,7 +45,23 @@ redis_ready() {
   docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG
 }
 
-# Check if containers are already running and healthy
+port_in_use() {
+  lsof -iTCP:"$1" -sTCP:LISTEN -t &>/dev/null
+}
+
+port_owner() {
+  lsof -iTCP:"$1" -sTCP:LISTEN -n -P 2>/dev/null | tail -1 | awk '{print $1 " (PID " $2 ")"}'
+}
+
+is_our_container() {
+  # Check if the process on the port belongs to our Docker Compose project
+  local PID
+  PID=$(lsof -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | head -1)
+  [ -n "$PID" ] && ps -p "$PID" -o command= 2>/dev/null | grep -q "com.docker" && return 0
+  return 1
+}
+
+# Check if our containers are already running and healthy
 PG_UP=false
 REDIS_UP=false
 
@@ -57,20 +73,12 @@ if docker compose ps --status running 2>/dev/null | grep -q redis && redis_ready
   REDIS_UP=true
 fi
 
-port_in_use() {
-  lsof -iTCP:"$1" -sTCP:LISTEN -t &>/dev/null
-}
-
-port_owner() {
-  lsof -iTCP:"$1" -sTCP:LISTEN -n -P 2>/dev/null | tail -1 | awk '{print $1 " (PID " $2 ")"}'
-}
-
 if $PG_UP && $REDIS_UP; then
   info "PostgreSQL and Redis are already running."
 else
-  # Kill anything occupying required ports
+  # Kill non-Docker processes occupying required ports
   for PORT in 5432 6379; do
-    if port_in_use "$PORT"; then
+    if port_in_use "$PORT" && ! is_our_container "$PORT"; then
       OWNER=$(port_owner "$PORT")
       warn "Port $PORT in use by $OWNER — killing it..."
       kill $(lsof -iTCP:"$PORT" -sTCP:LISTEN -t) 2>/dev/null || true
@@ -80,7 +88,21 @@ else
 
   info "Starting PostgreSQL and Redis..."
   docker compose up -d --wait
-  info "Services started."
+
+  # Verify services are actually reachable
+  RETRIES=0
+  MAX_RETRIES=15
+  until pg_ready && redis_ready; do
+    RETRIES=$((RETRIES + 1))
+    if [ "$RETRIES" -ge "$MAX_RETRIES" ]; then
+      error "Services failed to become healthy after ${MAX_RETRIES} retries."
+      error "Check: docker compose logs"
+      exit 1
+    fi
+    sleep 1
+  done
+
+  info "Services started and verified."
 fi
 
 # ──────────────────────────────────────────────
