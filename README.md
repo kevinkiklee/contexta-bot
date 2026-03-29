@@ -1,84 +1,93 @@
-# Contexta Bot ✨
+# Contexta Bot
 
-Contexta Bot is an AI-powered Discord bot built with TypeScript, `discord.js`, and Google's Gemini API. It leverages PostgreSQL (with pgvector) for long-term memory and persistent storage, and Redis for short-term caching to deliver context-aware, intelligent interactions in your Discord server.
+AI-powered Discord bot with long-term memory, multi-provider LLM support, and a web dashboard.
+
+## Architecture
+
+pnpm workspace monorepo with 4 apps and 3 packages:
+
+| Package | Purpose | Deploy |
+|---------|---------|--------|
+| `applications/bot` | Discord bot (discord.js) | Railway |
+| `applications/backend` | API server (Hono) | Railway |
+| `applications/dashboard` | Admin dashboard (Next.js 15) | Vercel |
+| `applications/website` | Marketing site (Next.js 15) | Vercel |
+| `packages/db` | Drizzle ORM schema + DB client | Library |
+| `packages/shared` | Types, constants, validation | Library |
+| `packages/ui` | Theme utilities | Library |
 
 ## Features
-- **AI-Powered Responses**: Integrated with Google's Gemini API for highly intelligent and native conversational capabilities.
-- **Context-Aware Memory**: Uses PostgreSQL and `pgvector` to store and retrieve semantic embeddings, giving the bot "long-term memory" of channel context and past conversations.
-- **High-Performance Caching**: Utilizes Redis for fast, short-term data lookups and state management.
-- **TypeScript & ES Modules**: Built with modern TypeScript and ESM for robust, typed, and maintainable code.
 
-## Context & Memory Architecture
-Contexta Bot uses a multi-tiered memory system to provide native, intelligent responses:
-- **Server Lore (Context Caching)**: Overarching server rules and global context are stored and optionally cached via the Gemini Context Caching API for lower latency and efficient token usage.
-- **User Profiles**: The bot infers and builds personalized context and preferences (stored as JSONB) for individual users based on their unique interactions.
-- **Semantic Channel Memory**: Past conversations are chunked, summarized, and stored as vector embeddings using PostgreSQL and `pgvector`. This allows the bot to perform similarity searches and organically weave relevant past context into current replies.
+- **Multi-provider LLM**: Gemini, OpenAI, and Anthropic via pluggable provider registry
+- **Tiered memory**: Redis (50-message rolling window) + PostgreSQL/pgvector (768-dim semantic vectors)
+- **Context caching**: Server lore cached via Gemini Context Caching API
+- **User profiles**: Per-server user context and preferences (JSONB)
+- **Multi-bot dashboard**: Switch between dev/prod bot instances from the same UI
+- **Slash commands**: /ask, /summarize, /recall, /settings, /lore, /profile
 
 ## Prerequisites
-To run this bot, you will need:
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- A Discord Bot Token (from the [Discord Developer Portal](https://discord.com/developers/applications))
-- A Google Gemini API Key (from [Google AI Studio](https://aistudio.google.com/))
-- A PostgreSQL database (with `pgvector` extension enabled)
-- A Redis instance
 
-## Installation
+- Node.js 24+
+- pnpm 10+
+- PostgreSQL with pgvector extension
+- Redis
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd contexta-bot
-   ```
+## Setup
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables**
-   Copy the `.env.example` file to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your actual API keys and database connections inside the `.env` file. Do NOT commit your `.env` file!
-
-   Variables required:
-   - `DISCORD_TOKEN`: Your Discord bot token.
-   - `GEMINI_API_KEY`: Your Google Gemini API key.
-   - `DATABASE_URL`: Connection string for your PostgreSQL database.
-   - `REDIS_URL`: Connection string for your Redis instance.
-
-## Usage
-
-### Development Mode
-To run the bot in development mode with hot-reloading (using `tsx`):
 ```bash
-npm run dev
+git clone <repo-url> && cd contexta-bot
+pnpm install
+cp .env.example .env   # Fill in values — see .env.example for docs
 ```
 
-### Production Mode
-To build the TypeScript files and run the compiled JavaScript:
-```bash
-# Compile TypeScript to JavaScript in the dist/ directory
-npm run build
+## Development
 
-# Start the bot
-npm start
+```bash
+pnpm dev:bot           # Bot with hot-reload
+pnpm dev:backend       # Backend API server
+pnpm dev:dashboard     # Dashboard on localhost:3000
+pnpm dev:website       # Website on localhost:5001
 ```
 
-## Project Structure
-- `src/index.ts` - Entry point that initializes services, loads bot events, and logs into Discord.
-- `src/events/` - Discord event listeners (e.g., `ready`, `messageCreate`).
-- `src/utils/redis.ts` - Redis connection and initialization logic.
-- `src/utils/backgroundWorker.ts` - Background worker for scanning/optimizing semantic embeddings.
-- `dist/` - Compiled JavaScript output (generated after build).
+## Testing
+
+```bash
+pnpm test              # All tests
+pnpm test:bot          # Bot tests (67 tests)
+pnpm test:dashboard    # Dashboard tests (24 tests)
+```
+
+## Database Migrations
+
+```bash
+pnpm db:generate                    # Generate Drizzle migration from schema changes
+source .env && psql "$DATABASE_URL" -f packages/db/src/migrations/<file>.sql  # Run manually
+```
+
+## Deployment
+
+- **Bot + Backend**: Railway (single service). Push to `main` triggers deploy.
+- **Dashboard + Website**: Vercel. Push to `main` triggers deploy.
+- **PostgreSQL + Redis**: Railway internal services.
+
+## Environment Variables
+
+See `.env.example` for the full list with documentation. Key variables:
+
+- `DISCORD_TOKEN` / `BOT_CLIENT_ID` — Bot credentials (per instance)
+- `DATABASE_URL` / `REDIS_URL` — Infrastructure
+- `BOTS` — Multi-bot dashboard config: `Dev:CLIENT_ID_1,Prod:CLIENT_ID_2`
 
 ## Tech Stack
-- [discord.js](https://discord.js.org/) - Discord API library
-- [Google GenAI API](https://ai.google.dev/) - Gemini interactions
-- [PostgreSQL](https://www.postgresql.org/) & [pgvector](https://github.com/pgvector/pgvector) - Semantic memory architecture
-- [Redis](https://redis.io/) - Fast caching layer
-- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+
+- [discord.js](https://discord.js.org/) — Discord API
+- [Hono](https://hono.dev/) — Backend API framework
+- [Next.js 15](https://nextjs.org/) — Dashboard and website
+- [Drizzle ORM](https://orm.drizzle.team/) — Database schema and queries
+- [pgvector](https://github.com/pgvector/pgvector) — Semantic vector search
+- [Redis](https://redis.io/) — Short-term cache
+- [Vitest](https://vitest.dev/) — Testing
 
 ## License
+
 MIT

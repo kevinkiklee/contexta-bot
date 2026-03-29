@@ -11,3 +11,4 @@ dist/
 .clone/
 *.tsbuildinfo
 notes.md
+.vercel
