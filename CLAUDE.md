@@ -2,76 +2,107 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## User Preferences
+
+- **No manual setup steps.** If a task requires manual setup (database migrations, env configuration, service installation, etc.), provide a runnable bash script instead of prose instructions. The user will execute it via `! <script>` in the terminal.
+
+## Monorepo Structure
+
+This is a pnpm workspace monorepo with 4 apps and 3 packages:
+
+| Package | Path | Purpose | Deploy |
+|---------|------|---------|--------|
+| @contexta/bot | apps/bot/ | Discord bot | Railway |
+| @contexta/backend | apps/backend/ | API server (Hono) | Railway |
+| @contexta/dashboard | apps/dashboard/ | Admin UI (Next.js) | Vercel |
+| @contexta/website | apps/website/ | Marketing site (Next.js) | Vercel |
+| @contexta/db | packages/db/ | Drizzle schema + DB client | Library |
+| @contexta/shared | packages/shared/ | Types, constants, validation | Library |
+| @contexta/ui | packages/ui/ | Shared React components | Library |
+
 ## Commands
 
 ```bash
-# Development (hot-reload via tsx)
-npm run dev
+# Development (run from repo root)
+pnpm dev:bot           # Bot with hot-reload
+pnpm dev:backend       # Backend API server
+pnpm dev:dashboard     # Dashboard on localhost:3000
+pnpm dev:website       # Website on localhost:3001
 
-# Build TypeScript to dist/
-npm run build
+# Build all
+pnpm build
 
-# Run compiled bot
-npm start
+# Test all
+pnpm test
+
+# Test specific app
+pnpm test:bot
+pnpm test:dashboard
+
+# Database
+pnpm db:generate       # Generate Drizzle migrations
+pnpm db:migrate        # Run migrations
+
+# Run in specific package
+pnpm --filter @contexta/bot <command>
+pnpm --filter @contexta/backend <command>
 ```
 
 ## Testing
 
-- `npm test` — runs unit + component tests (Vitest)
-- `npm run test:watch` — watch mode
-- `npm run test:integration` — integration tests (requires `TEST_DATABASE_URL` with pgvector)
-- Test files live in `src/tests/{unit,component,integration}/`
-- Shared helpers in `src/tests/helpers/`
+- `pnpm test:bot` — bot unit + component tests (Vitest)
+- `pnpm test:dashboard` — dashboard tests (Vitest)
+- `pnpm --filter @contexta/bot test:integration` — integration tests (requires `TEST_DATABASE_URL`)
+- Bot tests: `apps/bot/src/tests/{unit,component,integration}/`
+- Dashboard tests: `apps/dashboard/src/tests/`
+- Shared helpers in `apps/bot/src/tests/helpers/`
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.example` to `.env` at the repo root and fill in values. Each app reads from the root `.env` via dotenv.
+
+Key variables:
 - `DISCORD_TOKEN` — Discord bot token
 - `GEMINI_API_KEY` — Google Gemini API key
 - `DATABASE_URL` — PostgreSQL connection string (pgvector must be enabled)
 - `REDIS_URL` — Redis connection string
 
-SSL handling: `src/db/index.ts` strips `sslmode` from `DATABASE_URL` and auto-detects local connections to disable SSL. Set `DISABLE_DB_SSL=true` to force-disable it.
-
 ## Architecture
 
-The bot is an ES module TypeScript project (`"type": "module"`, `module: Node16`). Imports must use `.js` extensions even for `.ts` source files.
+### Bot (apps/bot/)
 
-### Entry Point & Bootstrapping (`src/index.ts`)
+ES module TypeScript project (`"type": "module"`, `module: Node16`). Imports must use `.js` extensions.
 
-Initializes Redis, then dynamically loads event handlers from `src/events/` by scanning the directory. Commands in `src/commands/` are NOT auto-loaded — they must be registered in a `loadCommands()` function and added to `(client as any).commands` Collection (this is incomplete in the current codebase).
+Entry point `src/index.ts` initializes Redis, loads events/commands via auto-discovery, starts an HTTP health server.
 
-### Tiered Memory Architecture
+Tiered memory: Redis (rolling window of 50 messages/channel) → PostgreSQL + pgvector (768-dim semantic vectors).
 
-| Layer | Tech | Purpose |
-|---|---|---|
-| Short-term | Redis | Rolling window of last 50 messages per channel, keyed `channel:{channelId}:history` |
-| Long-term | PostgreSQL + pgvector | Summarized conversation chunks stored as 768-dim vectors (cosine similarity via HNSW index) |
-| Server context | Gemini Context Caching API | Server lore/rules cached with TTL to reduce token costs |
+LLM providers: `src/llm/` with IAIProvider interface, GeminiProvider, OpenAIProvider, AnthropicProvider, and providerRegistry.
 
-### Model Abstraction Layer (`src/llm/`)
+Slash commands in `src/commands/`: ask, summarize, recall, settings, lore, profile.
 
-`IAIProvider` interface defines `generateChatResponse`, `generateEmbedding`, `summarizeText`, and `createServerContextCache`. `GeminiProvider` implements this using `gemini-2.5-flash` for generation and `text-embedding-004` for embeddings. New LLM providers must implement `IAIProvider`. The active model per server is stored in the `server_settings.active_model` DB column.
+### Backend (apps/backend/)
 
-### Message Flow (`src/events/messageCreate.ts`)
+Minimal Hono scaffold with `/health` endpoint. Will be built out in Sub-spec 2 with API routes, LLM service migration, and auth middleware.
 
-Every message is appended to Redis with format `[User: DisplayName]: content`. The bot only calls the LLM and replies when directly mentioned. Bot responses are stored back as `[System/Contexta]: content`.
+### Dashboard (apps/dashboard/)
 
-### Background Worker (`src/utils/backgroundWorker.ts`)
+Next.js 15 App Router with NextAuth (Discord OAuth). Pages: server list, server overview, settings, lore, channel history.
 
-`runSemanticEmbeddingWorker()` scans all Redis channel history keys, summarizes batches of 10+ messages via Gemini, generates embeddings, and inserts them into `channel_memory_vectors`. The `setInterval` call in `src/index.ts` is currently commented out.
+### Website (apps/website/)
 
-### Database (`src/db/`)
+Next.js 15 marketing site scaffold. Placeholder content — will be built out in Sub-spec 3.
 
-- `src/db/schema.sql` — apply manually to initialize the database (includes pgvector extension, all tables, and indexes)
-- `src/db/index.ts` — exports `pool`, `query()`, and `searchSimilarMemory(serverId, channelId, embedding, limit)`
+### Database (packages/db/)
 
-**Critical:** All pgvector queries must filter by `server_id` to enforce strict data isolation between Discord servers.
+Drizzle ORM schema matching the PostgreSQL tables. Custom pgvector column type for `vector(768)`. Exports typed Drizzle client and raw query helper.
 
-### Slash Commands (`src/commands/`)
+### Shared (packages/shared/)
 
-Files: `ask.ts`, `summarize.ts`, `recall.ts`, `settings.ts`, `lore.ts`, `profile.ts`. Dispatched via `src/events/interactionCreate.ts` which reads from `client.commands` Collection.
+Cross-app types, constants (model names, limits), and Zod validation schemas.
 
 ## Deployment
 
-Targets Railway (PaaS). The main branch triggers automated builds. PostgreSQL and Redis run as Railway internal services on the same private network as the Node process.
+- **Bot + Backend** → Railway (PaaS). Main branch triggers automated builds.
+- **Dashboard + Website** → Vercel.
+- PostgreSQL and Redis run as Railway internal services.
