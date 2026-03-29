@@ -129,6 +129,20 @@ if [ ! -f .env ]; then
 fi
 
 # ──────────────────────────────────────────────
+# 3b. Symlink .env into Next.js app directories
+# ──────────────────────────────────────────────
+
+# Next.js only reads .env from its own project root.
+# Symlink the root .env so dashboard and website pick up DATABASE_URL, etc.
+for APP_DIR in applications/dashboard applications/website apps/dashboard apps/website; do
+  if [ -d "$APP_DIR" ] && [ ! -f "$APP_DIR/.env.local" ]; then
+    REL_PATH=$(python3 -c "import os; print(os.path.relpath('$ROOT_DIR/.env', '$ROOT_DIR/$APP_DIR'))")
+    ln -sf "$REL_PATH" "$APP_DIR/.env.local"
+    info "Symlinked .env → $APP_DIR/.env.local"
+  fi
+done
+
+# ──────────────────────────────────────────────
 # 4. Install dependencies
 # ──────────────────────────────────────────────
 

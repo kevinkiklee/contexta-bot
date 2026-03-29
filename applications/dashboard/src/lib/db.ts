@@ -1,6 +1,10 @@
 import pg from 'pg';
 
-const connectionString = process.env.DATABASE_URL!;
+const connectionString = process.env.DATABASE_URL || '';
+
+if (!connectionString) {
+  console.warn('[DB] DATABASE_URL is not set — database queries will fail.');
+}
 
 const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
 const ssl = process.env.DISABLE_DB_SSL === 'true' || isLocal ? false : { rejectUnauthorized: true };
