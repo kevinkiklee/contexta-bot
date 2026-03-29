@@ -10,6 +10,7 @@ import {
   index,
   primaryKey,
   customType,
+  real,
 } from 'drizzle-orm/pg-core';
 
 const vector = customType<{ data: number[]; driverParam: string }>({
@@ -99,4 +100,79 @@ export const userServers = pgTable('user_servers', (t) => ({
 }), (table) => [
   primaryKey({ columns: [table.userId, table.serverId] }),
   index('idx_user_servers_server').on(table.serverId),
+]);
+
+export const knowledgeEntries = pgTable('knowledge_entries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  type: varchar('type', { length: 50 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  content: text('content').notNull(),
+  confidence: real('confidence').notNull().default(0.5),
+  sourceChannelId: varchar('source_channel_id', { length: 255 }),
+  sourceMessageIds: text('source_message_ids').array().default([]),
+  embedding: vector('embedding'),
+  metadata: jsonb('metadata').default({}),
+  isArchived: boolean('is_archived').notNull().default(false),
+  isPinned: boolean('is_pinned').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_ke_server_type').on(table.serverId, table.type),
+  index('idx_ke_confidence').on(table.serverId, table.confidence),
+  index('idx_ke_created').on(table.serverId, table.createdAt),
+]);
+
+export const knowledgeEntryLinks = pgTable('knowledge_entry_links', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceId: uuid('source_id').notNull().references(() => knowledgeEntries.id, { onDelete: 'cascade' }),
+  targetId: uuid('target_id').notNull().references(() => knowledgeEntries.id, { onDelete: 'cascade' }),
+  relationship: varchar('relationship', { length: 50 }).notNull(),
+  createdBy: varchar('created_by', { length: 50 }).notNull().default('pipeline'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_kel_source').on(table.sourceId),
+  index('idx_kel_target').on(table.targetId),
+]);
+
+export const channelSummaries = pgTable('channel_summaries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  channelId: varchar('channel_id', { length: 255 }).notNull(),
+  periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+  summary: text('summary').notNull(),
+  topics: text('topics').array().default([]),
+  decisions: text('decisions').array().default([]),
+  openQuestions: text('open_questions').array().default([]),
+  actionItems: text('action_items').array().default([]),
+  embedding: vector('embedding'),
+  messageCount: integer('message_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_cs_channel_time').on(table.serverId, table.channelId, table.periodEnd),
+]);
+
+export const userExpertise = pgTable('user_expertise', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  topic: varchar('topic', { length: 255 }).notNull(),
+  score: real('score').notNull().default(0.0),
+  messageCount: integer('message_count').notNull().default(0),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_ue_server_topic').on(table.serverId, table.topic, table.score),
+  index('idx_ue_user').on(table.userId, table.serverId),
+]);
+
+export const reports = pgTable('reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serverId: varchar('server_id', { length: 255 }).notNull(),
+  template: varchar('template', { length: 50 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  content: text('content').notNull(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_reports_server').on(table.serverId, table.generatedAt),
 ]);
