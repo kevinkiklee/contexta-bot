@@ -14,6 +14,18 @@ importers:
 
   apps/backend:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.80.0
+        version: 0.80.0(zod@3.25.76)
+      '@contexta/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@contexta/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@google/genai':
+        specifier: latest
+        version: 1.47.0
       '@hono/node-server':
         specifier: ^1.14.0
         version: 1.19.11(hono@4.12.9)
@@ -23,10 +35,22 @@ importers:
       hono:
         specifier: ^4.7.0
         version: 4.12.9
+      openai:
+        specifier: ^6.33.0
+        version: 6.33.0(ws@8.20.0)(zod@3.25.76)
+      pg:
+        specifier: ^8.11.3
+        version: 8.20.0
+      redis:
+        specifier: ^4.6.13
+        version: 4.7.1
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
