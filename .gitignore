@@ -1,6 +1,11 @@
 node_modules/
 dist/
+.next/
 .env
 .env.local
+.env*.local
 .DS_Store
-.worktrees/
+.claude/
+.claire/
+.clone/
+*.tsbuildinfo
