@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../.env') });
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
 const BOT_API_KEY = process.env.BOT_API_KEY || '';
