@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     passWithNoTests: true,
-    exclude: ['dist/**', 'node_modules/**', '**/*.integration.test.ts', 'dashboard/**'],
+    exclude: ['dist/**', 'node_modules/**', '**/*.integration.test.ts', 'dashboard/**', '.claude/**', '.claire/**', '.clone/**'],
   },
 });
