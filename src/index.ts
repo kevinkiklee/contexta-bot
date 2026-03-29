@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initRedis } from './utils/redis.js';
+import { startHttpServer, type HttpServerDeps } from './utils/httpServer.js';
+import { runSemanticEmbeddingWorker } from './utils/backgroundWorker.js';
 
 dotenv.config();
 
@@ -108,6 +110,13 @@ async function start() {
   }
 
   await client.login(token);
+
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    startHttpServer({ cronSecret, runWorker: runSemanticEmbeddingWorker as unknown as HttpServerDeps['runWorker'] });
+  } else {
+    console.warn('[HTTP] CRON_SECRET not set — HTTP server disabled.');
+  }
 }
 
 start();
