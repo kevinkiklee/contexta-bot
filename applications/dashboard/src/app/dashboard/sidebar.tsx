@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { BotSelector } from './bot-selector';
 import type { BotConfig } from '@/lib/bots';
+
+interface ChannelInfo {
+  id: string;
+  name: string;
+}
 
 interface Server {
   server_id: string;
@@ -76,6 +82,12 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const PersonalityIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="5" r="3" /><path d="M2 14c0-2.8 2.7-5 6-5s6 2.2 6 5" />
+  </svg>
+);
+
 const LoreIcon = () => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 3h1.5A2.5 2.5 0 0 1 6 5.5V14a1.5 1.5 0 0 0-1.5-1.5H2V3Z" /><path d="M14 3h-1.5A2.5 2.5 0 0 0 10 5.5V14a1.5 1.5 0 0 1 1.5-1.5H14V3Z" />
@@ -96,9 +108,25 @@ const ServersIcon = () => (
 
 export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const activeServerId = pathname.match(/^\/dashboard\/([^/]+)/)?.[1] ?? null;
   const activeServer = servers.find((s) => s.server_id === activeServerId);
+
+  const [channels, setChannels] = useState<ChannelInfo[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(pathname.includes('/history'));
+
+  useEffect(() => {
+    if (!activeServerId) { setChannels([]); return; }
+    fetch(`/api/channels/${activeServerId}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then(setChannels)
+      .catch(() => setChannels([]));
+  }, [activeServerId]);
+
+  useEffect(() => {
+    if (pathname.includes('/history')) setHistoryOpen(true);
+  }, [pathname]);
 
   return (
     <aside className="flex h-screen shrink-0 sticky top-0">
@@ -149,14 +177,57 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                     icon={<LoreIcon />}
                     active={pathname === `/dashboard/${activeServerId}/lore`}
                   />
+                  <NavItem
+                    href={`/dashboard/${activeServerId}/personality`}
+                    label="Personality"
+                    icon={<PersonalityIcon />}
+                    active={pathname === `/dashboard/${activeServerId}/personality`}
+                  />
                 </>
               )}
-              <NavItem
-                href={`/dashboard/${activeServerId}/history`}
-                label="History"
-                icon={<HistoryIcon />}
-                active={pathname === `/dashboard/${activeServerId}/history`}
-              />
+              {/* History with nested channels */}
+              <button
+                onClick={() => setHistoryOpen(!historyOpen)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all relative ${
+                  pathname.includes('/history')
+                    ? 'bg-primary-muted text-text font-medium'
+                    : 'text-text-muted hover:text-text hover:bg-bg-overlay'
+                }`}
+              >
+                {pathname.includes('/history') && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r-full" />
+                )}
+                <span className="w-4 h-4 flex items-center justify-center opacity-70"><HistoryIcon /></span>
+                History
+                <svg
+                  width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                  className={`ml-auto transition-transform ${historyOpen ? 'rotate-90' : ''}`}
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                >
+                  <polyline points="6 4 10 8 6 12" />
+                </svg>
+              </button>
+              {historyOpen && channels.length > 0 && (
+                <div className="ml-4 pl-3 border-l border-border space-y-0.5 mt-0.5">
+                  {channels.map((ch) => {
+                    const isActive = pathname.includes('/history') && searchParams.get('channel') === ch.id;
+                    return (
+                      <Link
+                        key={ch.id}
+                        href={`/dashboard/${activeServerId}/history?channel=${ch.id}&page=1`}
+                        className={`block px-2 py-1.5 rounded-md text-[12px] truncate transition-all ${
+                          isActive
+                            ? 'text-text font-medium bg-bg-overlay'
+                            : 'text-text-muted hover:text-text hover:bg-bg-overlay'
+                        }`}
+                        title={ch.name}
+                      >
+                        <span className="opacity-40 mr-0.5">#</span>{ch.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </>
           ) : (
             <NavItem href="/dashboard" label="All Servers" icon={<ServersIcon />} active={pathname === '/dashboard'} />

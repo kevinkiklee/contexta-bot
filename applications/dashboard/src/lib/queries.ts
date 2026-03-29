@@ -54,20 +54,47 @@ export async function updateServerLore(db: DbClient, serverId: string, botId: st
   await db.query('UPDATE server_settings SET server_lore = $1 WHERE server_id = $2 AND bot_id = $3', [lore, serverId, botId]);
 }
 
+// --- Personality ---
+
+export async function getPersonality(db: DbClient, serverId: string, botId: string): Promise<Record<string, unknown>> {
+  const result = await db.query(
+    'SELECT personality FROM server_settings WHERE server_id = $1 AND bot_id = $2',
+    [serverId, botId]
+  );
+  const raw = result.rows[0]?.personality;
+  return (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+}
+
+export async function updatePersonality(db: DbClient, serverId: string, botId: string, personality: Record<string, unknown>): Promise<void> {
+  await db.query(
+    'UPDATE server_settings SET personality = $1 WHERE server_id = $2 AND bot_id = $3',
+    [JSON.stringify(personality), serverId, botId]
+  );
+}
+
 // --- Channel history ---
+
+export interface ChannelInfo {
+  id: string;
+  name: string;
+}
 
 export async function getServerChannels(
   redis: Pick<RedisReader, 'smembers' | 'get'>,
   serverId: string
-): Promise<string[]> {
+): Promise<ChannelInfo[]> {
   const allChannels = await redis.smembers('active_channels');
   if (allChannels.length === 0) return [];
 
-  const serverIds = await Promise.all(
-    allChannels.map((channelId) => redis.get(`channel:${channelId}:server`))
-  );
+  const [serverIds, names] = await Promise.all([
+    Promise.all(allChannels.map((id) => redis.get(`channel:${id}:server`))),
+    Promise.all(allChannels.map((id) => redis.get(`channel:${id}:name`))),
+  ]);
 
-  return allChannels.filter((_, i) => serverIds[i] === serverId);
+  return allChannels
+    .map((id, i) => ({ id, name: names[i] || id, serverId: serverIds[i] }))
+    .filter((ch) => ch.serverId === serverId)
+    .map(({ id, name }) => ({ id, name }));
 }
 
 export async function getChannelHistory(
@@ -77,4 +104,108 @@ export async function getChannelHistory(
   limit: number
 ): Promise<string[]> {
   return redis.lrange(`channel:${channelId}:history`, offset, offset + limit - 1);
+}
+
+// --- Messages (Postgres) ---
+
+export interface MessageRow {
+  id: string;
+  server_id: string;
+  channel_id: string;
+  user_id: string;
+  display_name: string;
+  content: string;
+  is_bot: boolean;
+  created_at: string;
+}
+
+export interface MessageQuery {
+  serverId: string;
+  channelId?: string;
+  q?: string;
+  userId?: string;
+  botOnly?: boolean;
+  before?: string;
+  limit?: number;
+}
+
+export async function getMessages(
+  db: DbClient,
+  query: MessageQuery
+): Promise<{ messages: MessageRow[]; nextCursor: string | null }> {
+  const { serverId, channelId, q, userId, botOnly, before, limit = 50 } = query;
+
+  const conditions: string[] = ['server_id = $1'];
+  const params: unknown[] = [serverId];
+  let idx = 2;
+
+  if (channelId) { conditions.push(`channel_id = $${idx++}`); params.push(channelId); }
+  if (userId) { conditions.push(`user_id = $${idx++}`); params.push(userId); }
+  if (botOnly) { conditions.push('is_bot = true'); }
+  if (before) { conditions.push(`created_at < $${idx++}`); params.push(before); }
+
+  const where = conditions.join(' AND ');
+
+  // Full-text search
+  if (q) {
+    params.push(q);
+    params.push(limit);
+    const result = await db.query(
+      `SELECT id, server_id, channel_id, user_id, display_name, content, is_bot, created_at,
+              ts_rank(search_vec, plainto_tsquery('english', $${idx})) AS rank
+       FROM messages
+       WHERE ${where} AND search_vec @@ plainto_tsquery('english', $${idx++})
+       ORDER BY rank DESC, created_at DESC
+       LIMIT $${idx}`,
+      params
+    );
+    return { messages: result.rows as unknown as MessageRow[], nextCursor: null };
+  }
+
+  // Chronological browse
+  params.push(limit + 1);
+  const result = await db.query(
+    `SELECT id, server_id, channel_id, user_id, display_name, content, is_bot, created_at
+     FROM messages
+     WHERE ${where}
+     ORDER BY created_at DESC
+     LIMIT $${idx}`,
+    params
+  );
+
+  const rows = result.rows as unknown as MessageRow[];
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+
+  return {
+    messages: rows,
+    nextCursor: hasMore && rows.length > 0 ? rows[rows.length - 1].created_at : null,
+  };
+}
+
+export async function getMessageUsers(
+  db: DbClient,
+  serverId: string
+): Promise<{ user_id: string; display_name: string; is_bot: boolean }[]> {
+  const result = await db.query(
+    `SELECT DISTINCT user_id, display_name, is_bot
+     FROM messages WHERE server_id = $1 ORDER BY display_name`,
+    [serverId]
+  );
+  return result.rows as { user_id: string; display_name: string; is_bot: boolean }[];
+}
+
+export async function getMessageChannels(
+  db: DbClient,
+  serverId: string
+): Promise<{ channel_id: string; channel_name: string }[]> {
+  // Get distinct channels from messages, with name from Redis fallback to ID
+  const result = await db.query(
+    `SELECT DISTINCT channel_id FROM messages WHERE server_id = $1 ORDER BY channel_id`,
+    [serverId]
+  );
+  return (result.rows as { channel_id: string }[]).map((r) => ({
+    channel_id: r.channel_id,
+    channel_name: r.channel_id, // Will be enriched with Redis channel names in the page
+  }));
 }

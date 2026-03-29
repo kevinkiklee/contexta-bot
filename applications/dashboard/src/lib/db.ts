@@ -16,6 +16,6 @@ const disableSSL = isLocal || sslmode === 'disable' || process.env.DISABLE_DB_SS
 
 export const pool = new pg.Pool({
   connectionString,
-  ssl: disableSSL ? false : { rejectUnauthorized: false },
+  ssl: disableSSL ? false : { rejectUnauthorized: true },
 });
 

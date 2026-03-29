@@ -104,17 +104,27 @@ describe('updateServerLore', () => {
 });
 
 describe('getServerChannels', () => {
-  it('returns channel IDs belonging to a server', async () => {
+  it('returns channels with names belonging to a server', async () => {
     const mockRedis = {
       smembers: vi.fn().mockResolvedValue(['c1', 'c2', 'c3']),
-      get: vi.fn()
-        .mockResolvedValueOnce('s1')
-        .mockResolvedValueOnce('s1')
-        .mockResolvedValueOnce('s2'),
+      get: vi.fn((key: string) => {
+        const data: Record<string, string> = {
+          'channel:c1:server': 's1',
+          'channel:c2:server': 's1',
+          'channel:c3:server': 's2',
+          'channel:c1:name': 'general',
+          'channel:c2:name': 'random',
+          'channel:c3:name': 'off-topic',
+        };
+        return Promise.resolve(data[key] ?? null);
+      }),
     };
 
     const result = await getServerChannels(mockRedis, 's1');
-    expect(result).toEqual(['c1', 'c2']);
+    expect(result).toEqual([
+      { id: 'c1', name: 'general' },
+      { id: 'c2', name: 'random' },
+    ]);
   });
 });
 
