@@ -1,4 +1,3 @@
-// src/events/messageCreate.ts
 import { Message, Events } from 'discord.js';
 import { redisClient } from '../utils/redis.js';
 import { GeminiProvider } from '../llm/GeminiProvider.js';
@@ -7,6 +6,8 @@ import { isRateLimited } from '../utils/rateLimiter.js';
 import type { IAIProvider } from '../llm/IAIProvider.js';
 import { processAttachments } from '../services/attachmentProcessor.js';
 import type { AttachmentInfo } from '../services/attachmentProcessor.js';
+import { getProvider as registryGetProvider } from '../llm/providerRegistry.js';
+import { query as dbQuery } from '../db/index.js';
 
 export interface MessageCreateDeps {
   ai: IAIProvider;
@@ -18,12 +19,16 @@ export interface MessageCreateDeps {
     sAdd: (key: string, member: string) => Promise<number>;
   };
   processAttachments: (ai: IAIProvider, attachments: AttachmentInfo[]) => Promise<string>;
+  getProvider?: (modelName: string) => IAIProvider;
+  queryDb?: (text: string, params?: any[]) => Promise<any>;
 }
 
 const defaultDeps: MessageCreateDeps = {
   ai: new GeminiProvider(),
   redis: redisClient as unknown as MessageCreateDeps['redis'],
   processAttachments,
+  getProvider: registryGetProvider,
+  queryDb: dbQuery,
 };
 
 export const name = Events.MessageCreate;
@@ -37,7 +42,6 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
   if (!serverId) return;
 
-  // Rate limit check BEFORE any Redis writes
   if (isRateLimited(message.author.id)) {
     if (message.mentions.has(message.client.user.id)) {
       await message.react('⏳').catch(() => {});
@@ -72,7 +76,7 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
     const chatHistory = history.map(msg => ({
       role: msg.startsWith(BOT_SENTINEL) ? 'model' as const : 'user' as const,
-      parts: [{ text: msg }]
+      parts: [{ text: msg }],
     }));
 
     try {
@@ -80,20 +84,60 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
         await message.channel.sendTyping();
       }
 
-      const systemPrompt = `You are Contexta, an intelligent AI co-host for this Discord server. Provide helpful and concise responses. Do not prefix your own messages with [System/Contexta] as Discord formats it natively.`;
+      // Fetch server settings for provider, lore, and cache
+      let activeModel = 'gemini-2.5-flash';
+      let serverLore: string | null = null;
+      let cacheId: string | null = null;
+      let cacheExpiresAt: string | null = null;
 
-      const response = await deps.ai.generateChatResponse(
-        systemPrompt,
-        chatHistory,
-        { ttlMinutes: 60 }
-      );
+      if (deps.queryDb) {
+        try {
+          const settingsResult = await deps.queryDb(
+            'SELECT active_model, server_lore, context_cache_id, cache_expires_at FROM server_settings WHERE server_id = $1',
+            [serverId]
+          );
+          if (settingsResult.rows.length > 0) {
+            const row = settingsResult.rows[0];
+            activeModel = row.active_model || activeModel;
+            serverLore = row.server_lore;
+            cacheId = row.context_cache_id;
+            cacheExpiresAt = row.cache_expires_at;
+          }
+        } catch (err) {
+          console.warn('[messageCreate] Failed to fetch server settings, using defaults:', err);
+        }
+      }
+
+      // Use provider from registry if available
+      let ai: IAIProvider;
+      if (deps.getProvider) {
+        try {
+          ai = deps.getProvider(activeModel);
+        } catch {
+          ai = deps.ai; // fallback to default
+        }
+      } else {
+        ai = deps.ai;
+      }
+
+      let systemPrompt = 'You are Contexta, an intelligent AI co-host for this Discord server. Provide helpful and concise responses. Do not prefix your own messages with [System/Contexta] as Discord formats it natively.';
+      if (serverLore) {
+        systemPrompt += `\n\nServer context and lore:\n${serverLore}`;
+      }
+
+      // Determine cache options
+      const cacheOptions: { cacheId?: string; ttlMinutes?: number } = { ttlMinutes: 60 };
+      if (cacheId && cacheExpiresAt && new Date(cacheExpiresAt) > new Date()) {
+        cacheOptions.cacheId = cacheId;
+      }
+
+      const response = await ai.generateChatResponse(systemPrompt, chatHistory, cacheOptions);
 
       await message.reply(response);
 
       const botFormattedMsg = `${BOT_SENTINEL}[System/Contexta]: ${response}`;
       await deps.redis.rPush(redisKey, botFormattedMsg);
       await deps.redis.lTrim(redisKey, -50, -1);
-
     } catch (err) {
       console.error('[messageCreate] Error generating response:', err);
       await message.reply('I ran into an issue attempting to process that request.');

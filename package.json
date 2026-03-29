@@ -13,9 +13,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@google/genai": "latest",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
+    "openai": "^6.33.0",
     "pg": "^8.11.3",
     "redis": "^4.6.13"
   },

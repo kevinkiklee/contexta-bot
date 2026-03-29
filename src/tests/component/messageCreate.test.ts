@@ -294,4 +294,77 @@ describe('messageCreate handler', () => {
     expect(redis.rPush).not.toHaveBeenCalled();
     expect(message.react).toHaveBeenCalledWith('⏳');
   });
+
+  it('uses server active model from settings when mentioned', async () => {
+    const mockGetProvider = vi.fn().mockReturnValue(ai);
+    const message = createMockMessage({
+      mentions: { has: vi.fn().mockReturnValue(true) },
+    });
+    redis.lRange.mockResolvedValue(['[User: Alice]: hello']);
+
+    const mockDbQuery = vi.fn().mockResolvedValue({
+      rows: [{ active_model: 'gpt-4o', server_lore: null, context_cache_id: null, cache_expires_at: null }],
+      rowCount: 1,
+    });
+
+    await execute(message, {
+      ai,
+      redis,
+      processAttachments: attachmentProcessor.processAttachments,
+      getProvider: mockGetProvider,
+      queryDb: mockDbQuery,
+    });
+
+    expect(mockGetProvider).toHaveBeenCalledWith('gpt-4o');
+  });
+
+  it('includes server lore in system prompt when available', async () => {
+    const message = createMockMessage({
+      mentions: { has: vi.fn().mockReturnValue(true) },
+    });
+    redis.lRange.mockResolvedValue(['[User: Alice]: hello']);
+
+    const mockDbQuery = vi.fn().mockResolvedValue({
+      rows: [{ active_model: 'gemini-2.5-flash', server_lore: 'Pirates only!', context_cache_id: null, cache_expires_at: null }],
+      rowCount: 1,
+    });
+
+    await execute(message, {
+      ai,
+      redis,
+      processAttachments: attachmentProcessor.processAttachments,
+      queryDb: mockDbQuery,
+    });
+
+    const systemPrompt = vi.mocked(ai.generateChatResponse).mock.calls[0][0];
+    expect(systemPrompt).toContain('Pirates only!');
+  });
+
+  it('passes cache ID when valid cache exists', async () => {
+    const message = createMockMessage({
+      mentions: { has: vi.fn().mockReturnValue(true) },
+    });
+    redis.lRange.mockResolvedValue(['[User: Alice]: hello']);
+
+    const futureDate = new Date(Date.now() + 3600000).toISOString();
+    const mockDbQuery = vi.fn().mockResolvedValue({
+      rows: [{
+        active_model: 'gemini-2.5-flash',
+        server_lore: 'Lore',
+        context_cache_id: 'cachedContents/abc',
+        cache_expires_at: futureDate,
+      }],
+      rowCount: 1,
+    });
+
+    await execute(message, {
+      ai,
+      redis,
+      processAttachments: attachmentProcessor.processAttachments,
+      queryDb: mockDbQuery,
+    });
+
+    const cacheOptions = vi.mocked(ai.generateChatResponse).mock.calls[0][2];
+    expect(cacheOptions?.cacheId).toBe('cachedContents/abc');
+  });
 });

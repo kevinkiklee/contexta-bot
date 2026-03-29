@@ -10,5 +10,7 @@ export function createMockRedis() {
     lRange: vi.fn().mockResolvedValue([]),
     sAdd: vi.fn().mockResolvedValue(1),
     sMembers: vi.fn().mockResolvedValue([]),
+    setEx: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
   };
 }

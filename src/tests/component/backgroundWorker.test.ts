@@ -17,6 +17,7 @@ describe('runSemanticEmbeddingWorker orchestrator', () => {
   });
 
   it('makes no AI or DB calls when no channels are eligible', async () => {
+    redis.get.mockResolvedValue(null);
     redis.sMembers.mockResolvedValue([]);
     await runSemanticEmbeddingWorker(redis as any, ai, db);
     expect(ai.summarizeText).not.toHaveBeenCalled();
@@ -27,7 +28,10 @@ describe('runSemanticEmbeddingWorker orchestrator', () => {
   it('processes a single eligible channel through all stages', async () => {
     const messages = new Array(15).fill('test message');
     redis.sMembers.mockResolvedValue(['c1']);
-    redis.get.mockResolvedValue('server-1');
+    redis.get.mockImplementation(async (key: string) => {
+      if (key === 'worker:embedding:running') return null;
+      return 'server-1';
+    });
     redis.lRange.mockResolvedValue(messages);
 
     await runSemanticEmbeddingWorker(redis as any, ai, db);
@@ -45,6 +49,7 @@ describe('runSemanticEmbeddingWorker orchestrator', () => {
     const messages = new Array(15).fill('msg');
     redis.sMembers.mockResolvedValue(['c1', 'c2']);
     redis.get.mockImplementation(async (key: string) => {
+      if (key === 'worker:embedding:running') return null;
       if (key.includes('c1')) return 'server-1';
       if (key.includes('c2')) return 'server-2';
       return null;
@@ -59,7 +64,10 @@ describe('runSemanticEmbeddingWorker orchestrator', () => {
   it('continues processing after error in one channel', async () => {
     const messages = new Array(15).fill('msg');
     redis.sMembers.mockResolvedValue(['c1', 'c2']);
-    redis.get.mockResolvedValue('server-1');
+    redis.get.mockImplementation(async (key: string) => {
+      if (key === 'worker:embedding:running') return null;
+      return 'server-1';
+    });
     redis.lRange.mockResolvedValue(messages);
 
     ai.summarizeText = vi

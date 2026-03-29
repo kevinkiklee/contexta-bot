@@ -48,12 +48,32 @@ export async function storeMemoryVector(
   await db.query(insertQuery, [serverId, channelId, summary, `[${embedding.join(',')}]`]);
 }
 
+export interface WorkerStats {
+  status: string;
+  reason?: string;
+  channelsProcessed: number;
+  embeddingsCreated: number;
+  errors: string[];
+}
+
 export async function runSemanticEmbeddingWorker(
-  redis: Pick<typeof redisClient, 'sMembers' | 'get' | 'lRange'> = redisClient,
+  redis: Pick<typeof redisClient, 'sMembers' | 'get' | 'lRange' | 'setEx' | 'del'> = redisClient,
   ai: IAIProvider = new GeminiProvider(),
   db: { query: (text: string, params?: any[]) => Promise<any> } = pool
-): Promise<void> {
+): Promise<WorkerStats> {
+  const LOCK_KEY = 'worker:embedding:running';
+  const LOCK_TTL = 300;
+
+  const isRunning = await redis.get(LOCK_KEY);
+  if (isRunning) {
+    console.log('[Worker] Skipping — another run is already in progress.');
+    return { status: 'skipped', reason: 'already_running', channelsProcessed: 0, embeddingsCreated: 0, errors: [] };
+  }
+
+  await redis.setEx(LOCK_KEY, LOCK_TTL, '1');
   console.log('[Worker] Starting background semantic embedding sweep...');
+
+  const stats: WorkerStats = { status: 'completed', channelsProcessed: 0, embeddingsCreated: 0, errors: [] };
 
   try {
     const channels = await fetchEligibleChannels(redis);
@@ -68,11 +88,21 @@ export async function runSemanticEmbeddingWorker(
 
         await storeMemoryVector(db, serverId, channelId, summary, embedding);
         console.log(`[Worker] Inserted memory chunk for channel ${channelId} (server ${serverId})`);
+
+        stats.channelsProcessed++;
+        stats.embeddingsCreated++;
       } catch (err) {
         console.error(`[Worker] Error processing channel ${channelId}:`, err);
+        stats.errors.push(`channel ${channelId}: ${(err as Error).message}`);
       }
     }
   } catch (err) {
     console.error('[Worker] Fatal error running semantic embedding:', err);
+    stats.status = 'error';
+    stats.errors.push(`fatal: ${(err as Error).message}`);
+  } finally {
+    await redis.del(LOCK_KEY);
   }
+
+  return stats;
 }
