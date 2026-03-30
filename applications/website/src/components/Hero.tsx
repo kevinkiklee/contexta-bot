@@ -48,7 +48,7 @@ export default function Hero() {
       <GlowBlob color="purple" size={500} className="top-1/4 left-1/4 animate-float-slow" />
       <GlowBlob color="cyan" size={400} className="bottom-1/3 right-1/4 animate-float" />
 
-      <div className="relative z-10 text-center max-w-2xl animate-fade-in-up">
+      <div className="relative z-10 text-center max-w-2xl hero-stagger">
         <BrainIllustration size="lg" />
 
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] mt-8">
@@ -77,13 +77,13 @@ export default function Hero() {
         </div>
 
         {/* Discord chat mockup */}
-        <div className="mt-16 max-w-lg mx-auto animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div className="mt-16 max-w-lg mx-auto">
           <DiscordChat days={HERO_CHAT} />
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-text-dim text-xs flex flex-col items-center gap-2 animate-pulse-glow">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-text-dim text-xs flex flex-col items-center gap-2 animate-scroll-bounce opacity-60">
         <span>scroll</span>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="4 6 8 10 12 6" />

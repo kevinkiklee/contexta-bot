@@ -5,7 +5,7 @@ export const DASHBOARD_URL = 'https://contexta-bot.vercel.app';
 
 export default function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-40 border-b border-border animate-nav-fade-in">
       <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between backdrop-blur-xl bg-bg/60">
         <div className="flex items-center gap-6">
           <a href="#" className="flex items-center gap-2">

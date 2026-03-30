@@ -20,9 +20,11 @@ describe('recall command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRateLimited.mockReturnValue(false);
+    // Default: knowledge search returns empty, legacy search also returns empty
     mockBackendPost
-      .mockResolvedValueOnce({ embedding: [0.1, 0.2] })
-      .mockResolvedValueOnce({ results: [] });
+      .mockResolvedValueOnce({ entries: [], related: [] })   // /api/knowledge/.../search
+      .mockResolvedValueOnce({ embedding: [0.1, 0.2] })      // /api/embeddings/generate
+      .mockResolvedValueOnce({ results: [] });               // /api/embeddings/search
   });
 
   it('rejects in DM context', async () => {
@@ -57,8 +59,16 @@ describe('recall command', () => {
   it('reports found results count', async () => {
     mockBackendPost.mockReset();
     mockBackendPost
+      .mockResolvedValueOnce({
+        entries: [
+          { type: 'decision', title: 'Decision A', content: 'We chose X', confidence: 0.9, source_channel_id: '123', created_at: '2026-01-01', similarity: 0.95 },
+          { type: 'topic', title: 'Topic B', content: 'Discussion about Y', confidence: 0.8, source_channel_id: '123', created_at: '2026-01-02', similarity: 0.85 },
+        ],
+        related: [],
+      })
       .mockResolvedValueOnce({ embedding: [0.1] })
-      .mockResolvedValueOnce({ results: [{ id: '1' }, { id: '2' }] });
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ response: 'Here is a summary of the 2 results found.' });
     const interaction = createMockInteraction({
       options: {
         getString: vi.fn().mockReturnValue('test topic'),

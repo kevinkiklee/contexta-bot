@@ -10,6 +10,7 @@ import { attachmentRoutes } from './routes/attachments.js';
 import { cacheRoutes } from './routes/cache.js';
 import { messageRoutes } from './routes/messages.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
+import { knowledgeSearchRoutes } from './routes/knowledgeSearch.js';
 import { tagMessagesRoutes } from './routes/cron/tagMessages.js';
 import { extractKnowledgeRoutes } from './routes/cron/extractKnowledge.js';
 import { summarizeChannelsRoutes } from './routes/cron/summarizeChannels.js';
@@ -43,6 +44,7 @@ apiApp.route('/', attachmentRoutes);
 apiApp.route('/', cacheRoutes);
 apiApp.route('/', messageRoutes);
 apiApp.route('/', knowledgeRoutes);
+apiApp.route('/', knowledgeSearchRoutes);
 app.route('/api', apiApp);
 
 // Error handler

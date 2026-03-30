@@ -149,6 +149,33 @@ describe('messageCreate handler', () => {
     expect(chatHistory[1].role).toBe('model');
   });
 
+  it('injects knowledge context when mentioned', async () => {
+    const message = createMockMessage({
+      content: 'What caching solution are we using?',
+      mentions: { has: vi.fn().mockReturnValue(true) },
+    });
+    redis.lRange.mockResolvedValue(['[User: Alice]: hello']);
+
+    mockPostBackend.mockImplementation(async (path: string) => {
+      if (path.includes('/knowledge/') && path.includes('/search')) {
+        return {
+          entries: [{ type: 'decision', title: 'Use Redis', content: 'Team chose Redis', confidence: 0.9 }],
+          related: [],
+        };
+      }
+      if (path === '/api/messages') return {};
+      return { response: 'Based on a previous discussion, the team chose Redis for caching.' };
+    });
+    mockGetBackend.mockResolvedValue({ lore: null });
+
+    await execute(message, { redis, postBackend: mockPostBackend, getBackend: mockGetBackend });
+
+    // Verify chat was called with knowledge in the prompt
+    const chatCall = mockPostBackend.mock.calls.find((c: unknown[]) => c[0] === '/api/chat');
+    expect(chatCall).toBeDefined();
+    expect(chatCall![1].systemPrompt).toContain('RELEVANT KNOWLEDGE');
+  });
+
   it('registers channelId in active_channels Set on each message', async () => {
     const message = createMockMessage();
     await execute(message, { redis, postBackend: mockPostBackend, getBackend: mockGetBackend });
