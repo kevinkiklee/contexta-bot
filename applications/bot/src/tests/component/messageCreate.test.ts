@@ -159,7 +159,7 @@ describe('messageCreate handler', () => {
     mockPostBackend.mockImplementation(async (path: string) => {
       if (path.includes('/knowledge/') && path.includes('/search')) {
         return {
-          entries: [{ type: 'decision', title: 'Use Redis', content: 'Team chose Redis', confidence: 0.9 }],
+          entries: [{ id: 'abcd1234-0000-0000-0000-000000000000', type: 'decision', title: 'Use Redis', content: 'Team chose Redis', confidence: 0.9 }],
           related: [],
         };
       }
