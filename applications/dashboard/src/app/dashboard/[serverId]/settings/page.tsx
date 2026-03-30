@@ -169,7 +169,7 @@ export default async function SettingsPage({
             Require review for all entries (overrides threshold)
           </label>
         </div>
-        <button type="submit" className="mt-4 bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+        <button type="submit" className="mt-4 bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary-hover transition-colors">
           Save Knowledge Settings
         </button>
       </form>
