@@ -49,7 +49,9 @@ describe('ask command', () => {
       serverId: 'guild-456',
       chatHistory: expect.any(Array),
     }));
-    expect(interaction.editReply).toHaveBeenCalledWith('AI response');
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
+      embeds: expect.arrayContaining([expect.objectContaining({ data: expect.objectContaining({ description: 'AI response' }) })]),
+    }));
   });
 
   it('includes lore in system prompt when available', async () => {
@@ -86,6 +88,6 @@ describe('ask command', () => {
       },
     });
     await execute(interaction);
-    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('issue'));
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining("couldn't process"));
   });
 });

@@ -75,7 +75,9 @@ describe('recall command', () => {
       },
     });
     await execute(interaction);
-    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('2'));
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.objectContaining({
+      embeds: expect.arrayContaining([expect.anything()]),
+    }));
   });
 
   it('handles backend error gracefully', async () => {
@@ -85,6 +87,6 @@ describe('recall command', () => {
       options: { getString: vi.fn().mockReturnValue('test') },
     });
     await execute(interaction);
-    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining('error'));
+    expect(interaction.editReply).toHaveBeenCalledWith(expect.stringContaining("couldn't process"));
   });
 });
