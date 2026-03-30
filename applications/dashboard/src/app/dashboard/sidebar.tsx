@@ -51,10 +51,23 @@ function ServerIcon({ server, isActive }: { server: Server; isActive: boolean })
   );
 }
 
-function NavItem({ href, label, icon, active }: { href: string; label: string; icon: React.ReactNode; active: boolean }) {
+function NavItem({
+  href,
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onClick?: () => void;
+}) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all relative ${
         active
           ? 'bg-primary-muted text-text font-medium'
@@ -112,30 +125,45 @@ const ServersIcon = () => (
   </svg>
 );
 
-export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const activeServerId = pathname.match(/^\/dashboard\/([^/]+)/)?.[1] ?? null;
-  const activeServer = servers.find((s) => s.server_id === activeServerId);
-
-  const [channels, setChannels] = useState<ChannelInfo[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(pathname.includes('/history'));
-
-  useEffect(() => {
-    if (!activeServerId) { setChannels([]); return; }
-    fetch(`/api/channels/${activeServerId}`)
-      .then((r) => r.ok ? r.json() : [])
-      .then(setChannels)
-      .catch(() => setChannels([]));
-  }, [activeServerId]);
-
-  useEffect(() => {
-    if (pathname.includes('/history')) setHistoryOpen(true);
-  }, [pathname]);
-
+function HamburgerIcon() {
   return (
-    <aside className="flex h-screen shrink-0 sticky top-0">
+    <div className="flex flex-col gap-[5px] w-5">
+      <span className="block h-[2px] w-full bg-current rounded-full" />
+      <span className="block h-[2px] w-full bg-current rounded-full" />
+      <span className="block h-[2px] w-full bg-current rounded-full" />
+    </div>
+  );
+}
+
+function SidebarContent({
+  servers,
+  userName,
+  bots,
+  activeBotId,
+  pathname,
+  searchParams,
+  activeServerId,
+  activeServer,
+  channels,
+  historyOpen,
+  setHistoryOpen,
+  onNavClick,
+}: {
+  servers: Server[];
+  userName: string;
+  bots: BotConfig[];
+  activeBotId: string;
+  pathname: string;
+  searchParams: ReturnType<typeof useSearchParams>;
+  activeServerId: string | null;
+  activeServer: Server | undefined;
+  channels: ChannelInfo[];
+  historyOpen: boolean;
+  setHistoryOpen: (open: boolean) => void;
+  onNavClick?: () => void;
+}) {
+  return (
+    <>
       {/* Icon Rail */}
       <div className="w-[52px] bg-bg-raised border-r border-border flex flex-col items-center py-4 gap-2">
         <div className="mb-3">
@@ -168,6 +196,7 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                 label="Overview"
                 icon={<OverviewIcon />}
                 active={pathname === `/dashboard/${activeServerId}`}
+                onClick={onNavClick}
               />
               {activeServer.is_admin && (
                 <>
@@ -176,18 +205,21 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                     label="Settings"
                     icon={<SettingsIcon />}
                     active={pathname === `/dashboard/${activeServerId}/settings`}
+                    onClick={onNavClick}
                   />
                   <NavItem
                     href={`/dashboard/${activeServerId}/lore`}
                     label="Lore"
                     icon={<LoreIcon />}
                     active={pathname === `/dashboard/${activeServerId}/lore`}
+                    onClick={onNavClick}
                   />
                   <NavItem
                     href={`/dashboard/${activeServerId}/personality`}
                     label="Personality"
                     icon={<PersonalityIcon />}
                     active={pathname === `/dashboard/${activeServerId}/personality`}
+                    onClick={onNavClick}
                   />
                 </>
               )}
@@ -221,6 +253,7 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                       <Link
                         key={ch.id}
                         href={`/dashboard/${activeServerId}/history?channel=${ch.id}&page=1`}
+                        onClick={onNavClick}
                         className={`block px-2 py-1.5 rounded-md text-[12px] truncate transition-all ${
                           isActive
                             ? 'text-text font-medium bg-bg-overlay'
@@ -239,10 +272,17 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                 label="Knowledge"
                 icon={<KnowledgeIcon />}
                 active={pathname === `/dashboard/${activeServerId}/knowledge` || pathname.startsWith(`/dashboard/${activeServerId}/knowledge/`)}
+                onClick={onNavClick}
               />
             </>
           ) : (
-            <NavItem href="/dashboard" label="All Servers" icon={<ServersIcon />} active={pathname === '/dashboard'} />
+            <NavItem
+              href="/dashboard"
+              label="All Servers"
+              icon={<ServersIcon />}
+              active={pathname === '/dashboard'}
+              onClick={onNavClick}
+            />
           )}
         </nav>
 
@@ -261,6 +301,95 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const activeServerId = pathname.match(/^\/dashboard\/([^/]+)/)?.[1] ?? null;
+  const activeServer = servers.find((s) => s.server_id === activeServerId);
+
+  const [channels, setChannels] = useState<ChannelInfo[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(pathname.includes('/history'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!activeServerId) { setChannels([]); return; }
+    fetch(`/api/channels/${activeServerId}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then(setChannels)
+      .catch(() => setChannels([]));
+  }, [activeServerId]);
+
+  useEffect(() => {
+    if (pathname.includes('/history')) setHistoryOpen(true);
+  }, [pathname]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  const sharedContentProps = {
+    servers,
+    userName,
+    bots,
+    activeBotId,
+    pathname,
+    searchParams,
+    activeServerId,
+    activeServer,
+    channels,
+    historyOpen,
+    setHistoryOpen,
+  };
+
+  const currentServerName = activeServer?.server_name || activeServer?.server_id || 'Dashboard';
+
+  return (
+    <>
+      {/* Mobile top bar */}
+      <div className="flex md:hidden fixed top-0 left-0 right-0 z-30 h-12 bg-bg-raised border-b border-border items-center px-4">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="text-text-muted hover:text-text transition p-1 -ml-1"
+          aria-label="Open menu"
+        >
+          <HamburgerIcon />
+        </button>
+        <span className="flex-1 text-center text-sm font-medium truncate px-4">
+          {currentServerName}
+        </span>
+        {/* Spacer to balance hamburger */}
+        <div className="w-7" />
+      </div>
+
+      {/* Desktop sidebar — always visible */}
+      <aside className="hidden md:flex h-screen shrink-0 sticky top-0">
+        <SidebarContent {...sharedContentProps} />
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          {/* Slide-in sidebar */}
+          <aside className="fixed left-0 top-0 h-full z-50 flex md:hidden animate-slide-in-left">
+            <SidebarContent
+              {...sharedContentProps}
+              onNavClick={() => setMobileOpen(false)}
+            />
+          </aside>
+        </>
+      )}
+    </>
   );
 }

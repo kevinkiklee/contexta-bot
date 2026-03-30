@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         bots={bots}
         activeBotId={activeBotId}
       />
-      <main className="flex-1 min-w-0 p-8 lg:p-10">
+      <main className="flex-1 min-w-0 pt-20 px-8 pb-8 md:pt-8 lg:p-10">
         <div className="max-w-4xl animate-fade-in">
           {children}
         </div>
