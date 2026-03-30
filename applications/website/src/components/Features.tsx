@@ -45,22 +45,24 @@ export default function Features() {
       <GlowBlob color="cyan" size={300} className="top-2/3 -right-32" />
 
       <div className="relative max-w-6xl mx-auto">
-        <div className="text-center mb-20">
-          <p className="text-purple text-xs font-semibold uppercase tracking-[3px] mb-3">Features</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Knowledge that grows with your community
-          </h2>
-          <p className="mt-4 text-text-muted max-w-md mx-auto">
-            Not just another chatbot. Contexta builds a living memory of your server.
-          </p>
-        </div>
+        <ScrollReveal className="reveal">
+          <div className="text-center mb-20 section-header">
+            <p className="text-purple text-xs font-semibold uppercase tracking-[3px] mb-3">Features</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Knowledge that grows with your community
+            </h2>
+            <p className="mt-4 text-text-muted max-w-md mx-auto">
+              Not just another chatbot. Contexta builds a living memory of your server.
+            </p>
+          </div>
+        </ScrollReveal>
 
         <div className="space-y-24 lg:space-y-32">
           {FEATURES.map((f, i) => {
             const isReversed = i % 2 === 1;
             return (
               <ScrollReveal key={f.title} className="reveal">
-                <div className={`flex flex-col ${isReversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-12 lg:gap-16`}>
+                <div className={`flex flex-col ${isReversed ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-12 lg:gap-16 reveal-stagger-row`}>
                   {/* Illustration */}
                   <div className="flex-1 w-full max-w-md lg:max-w-none">
                     {f.illustration}
@@ -69,7 +71,7 @@ export default function Features() {
                   {/* Text */}
                   <div className="flex-1 text-center lg:text-left">
                     <div
-                      className="inline-flex w-14 h-14 rounded-2xl items-center justify-center text-2xl mb-5 border border-white/5"
+                      className="inline-flex w-14 h-14 rounded-2xl items-center justify-center text-2xl mb-5 border border-white/5 transition-transform duration-300 hover:scale-110"
                       style={{ background: `${f.accent}15` }}
                     >
                       {f.icon}

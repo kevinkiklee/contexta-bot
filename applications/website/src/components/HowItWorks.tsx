@@ -80,12 +80,14 @@ export default function HowItWorks() {
     <section id="how-it-works" className="relative px-6 py-24 sm:py-32">
       <div className="divider mb-24" />
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-16">
-          <p className="text-cyan text-xs font-semibold uppercase tracking-[3px] mb-3">How It Works</p>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Three steps. Zero config headaches.
-          </h2>
-        </div>
+        <ScrollReveal className="reveal">
+          <div className="text-center mb-16 section-header">
+            <p className="text-cyan text-xs font-semibold uppercase tracking-[3px] mb-3">How It Works</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Three steps. Zero config headaches.
+            </h2>
+          </div>
+        </ScrollReveal>
 
         <div className="grid sm:grid-cols-3 gap-8 relative">
           <svg className="hidden sm:block absolute top-16 left-[18%] right-[18%] h-2 overflow-visible" preserveAspectRatio="none">

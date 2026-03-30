@@ -66,13 +66,15 @@ export default function SeeItInAction() {
       <Particles count={25} color="#7c3aed" />
 
       <div className="relative max-w-2xl mx-auto text-center">
-        <p className="text-purple text-xs font-semibold uppercase tracking-[3px] mb-3">See It In Action</p>
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-          Memory that connects the dots
-        </h2>
-        <p className="text-text-muted mb-16 max-w-md mx-auto">
-          Watch how Contexta recalls a conversation from days ago to give the perfect answer.
-        </p>
+        <div className="section-header">
+          <p className="text-purple text-xs font-semibold uppercase tracking-[3px] mb-3">See It In Action</p>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+            Memory that connects the dots
+          </h2>
+          <p className="text-text-muted mb-16 max-w-md mx-auto">
+            Watch how Contexta recalls a conversation from days ago to give the perfect answer.
+          </p>
+        </div>
 
         <div className="relative">
           <div
