@@ -100,6 +100,12 @@ const HistoryIcon = () => (
   </svg>
 );
 
+const KnowledgeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11H6v-1.5A4 4 0 0 1 4 6a4 4 0 0 1 4-4Z" /><line x1="6" y1="13" x2="10" y2="13" /><line x1="7" y1="14.5" x2="9" y2="14.5" />
+  </svg>
+);
+
 const ServersIcon = () => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="12" height="12" rx="2" /><line x1="2" y1="8" x2="14" y2="8" />
@@ -228,6 +234,12 @@ export function Sidebar({ servers, userName, bots, activeBotId }: SidebarProps) 
                   })}
                 </div>
               )}
+              <NavItem
+                href={`/dashboard/${activeServerId}/knowledge`}
+                label="Knowledge"
+                icon={<KnowledgeIcon />}
+                active={pathname === `/dashboard/${activeServerId}/knowledge` || pathname.startsWith(`/dashboard/${activeServerId}/knowledge/`)}
+              />
             </>
           ) : (
             <NavItem href="/dashboard" label="All Servers" icon={<ServersIcon />} active={pathname === '/dashboard'} />

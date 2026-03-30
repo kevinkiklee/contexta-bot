@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { checkServerAdmin } from '@/lib/auth-helpers';
-import { getServerSettings, updateServerModel } from '@/lib/queries';
+import { getServerSettings, updateServerModel, getKnowledgeConfig, updateKnowledgeConfig } from '@/lib/queries';
 import { pool } from '@/lib/db';
 import { getSelectedBotId } from '@/lib/bot-cookie';
 
@@ -57,6 +57,22 @@ export default async function SettingsPage({
   const botId = await getSelectedBotId();
   const settings = await getServerSettings(pool, serverId, botId);
   const currentModel = settings?.active_model ?? 'gemini-2.5-flash';
+
+  const knowledgeConfig = await getKnowledgeConfig(pool, serverId, botId);
+  const autoPublishThreshold = (knowledgeConfig?.autoPublishThreshold as number) ?? 0.7;
+  const reviewRequired = (knowledgeConfig?.reviewRequired as boolean) ?? false;
+
+  async function handleUpdateKnowledgeConfig(formData: FormData) {
+    'use server';
+    const threshold = parseFloat(formData.get('autoPublishThreshold') as string) || 0.7;
+    const review = formData.get('reviewRequired') === 'on';
+    await updateKnowledgeConfig(pool, serverId, botId, {
+      autoPublishThreshold: Math.min(1, Math.max(0, threshold)),
+      reviewRequired: review,
+    });
+    revalidatePath(`/dashboard/${serverId}/settings`);
+    redirect(`/dashboard/${serverId}/settings`);
+  }
 
   async function handleUpdateModel(formData: FormData) {
     'use server';
@@ -128,6 +144,34 @@ export default async function SettingsPage({
             Save Changes
           </button>
         </div>
+      </form>
+
+      {/* Knowledge Approval Settings */}
+      <form action={handleUpdateKnowledgeConfig} className="mt-8 border border-border rounded-lg p-5 bg-bg-raised">
+        <h2 className="text-base font-semibold text-text mb-4">Knowledge Approval</h2>
+        <p className="text-sm text-text-muted mb-4">
+          Control how extracted knowledge entries are published. Entries below the threshold go to a review queue.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">Auto-publish threshold</label>
+            <div className="flex items-center gap-3">
+              <input type="range" name="autoPublishThreshold" min="0" max="1" step="0.1" defaultValue={autoPublishThreshold} className="flex-1" />
+              <span className="text-sm text-text-muted w-8 text-right">{autoPublishThreshold}</span>
+            </div>
+            <div className="flex justify-between text-xs text-text-muted mt-1">
+              <span>Review all</span>
+              <span>Auto-publish all</span>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-text">
+            <input type="checkbox" name="reviewRequired" defaultChecked={reviewRequired} className="rounded border-border" />
+            Require review for all entries (overrides threshold)
+          </label>
+        </div>
+        <button type="submit" className="mt-4 bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+          Save Knowledge Settings
+        </button>
       </form>
     </div>
   );
