@@ -35,6 +35,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       systemPrompt += `\n\nServer context and lore:\n${lore}`;
     }
 
+    // Retrieve relevant knowledge
+    let knowledgeBlock = '';
+    try {
+      const { entries } = await backendPost<{
+        entries: { type: string; title: string; content: string; confidence: number }[];
+        related: unknown[];
+      }>(`/api/knowledge/${interaction.guildId}/search`, { query: userQuery, limit: 5, minConfidence: 0.3 });
+
+      if (entries.length > 0) {
+        const lines = entries.map((e: { type: string; title: string; content: string; confidence: number }) => {
+          const conf = e.confidence >= 0.7 ? 'high confidence' : 'moderate confidence';
+          return `- ${e.type} (${conf}): "${e.title}" — ${e.content}`;
+        });
+        knowledgeBlock = `\n\n[RELEVANT KNOWLEDGE]\n${lines.join('\n')}\n[/RELEVANT KNOWLEDGE]`;
+      }
+    } catch {
+      // Knowledge retrieval is best-effort
+    }
+
+    systemPrompt += knowledgeBlock;
+
     const { response } = await backendPost<{ response: string }>('/api/chat', {
       serverId,
       systemPrompt,
