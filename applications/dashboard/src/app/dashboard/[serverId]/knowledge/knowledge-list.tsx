@@ -183,21 +183,42 @@ export function KnowledgeList({
 
       {/* Table */}
       {entries.length === 0 ? (
-        <div className="rounded-2xl border border-border border-dashed bg-bg-raised p-12 text-center">
-          <div className="w-12 h-12 rounded-xl bg-bg-overlay flex items-center justify-center mx-auto mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-text-muted" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <p className="text-text-subtle font-medium text-sm">
-            {currentFilters.q ? 'No entries match your search' : 'No knowledge entries yet'}
-          </p>
-          <p className="text-text-muted text-xs mt-1.5">
-            {currentFilters.q
-              ? 'Try a different search term or clear filters.'
-              : 'Knowledge will be extracted automatically from conversations.'}
-          </p>
-        </div>
+        (() => {
+          const hasFilters =
+            currentFilters.q || currentFilters.status || currentFilters.type || currentFilters.pinned;
+          return hasFilters ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-12 h-12 rounded-full bg-bg-overlay flex items-center justify-center mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-text-muted" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-text mb-1">No entries match your filters.</h3>
+              <p className="text-sm text-text-muted max-w-sm mb-4">
+                Try adjusting or clearing your search and filter criteria.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push(pathname)}
+                className="bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-12 h-12 rounded-full bg-bg-overlay flex items-center justify-center mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-text-muted" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-text mb-1">No knowledge entries yet</h3>
+              <p className="text-sm text-text-muted max-w-sm">
+                The bot automatically extracts knowledge from conversations. Once active, entries will appear here.
+              </p>
+            </div>
+          );
+        })()
       ) : (
         <div className="rounded-xl border border-border bg-bg-raised overflow-hidden">
           <div className="overflow-x-auto">

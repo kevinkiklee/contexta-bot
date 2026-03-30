@@ -5,6 +5,11 @@ import { pool } from '@/lib/db';
 import { getSelectedBotId } from '@/lib/bot-cookie';
 import Link from 'next/link';
 
+const botClientId = process.env.BOT_CLIENT_ID;
+const inviteUrl = botClientId
+  ? `https://discord.com/oauth2/authorize?client_id=${botClientId}&permissions=274877910016&scope=bot`
+  : null;
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/');
@@ -19,16 +24,26 @@ export default async function DashboardPage() {
         <p className="text-text-muted text-sm mt-1">Manage your Discord servers with Contexta</p>
       </div>
       {servers.length === 0 ? (
-        <div className="rounded-2xl border border-border border-dashed bg-bg-raised p-12 text-center">
-          <div className="w-12 h-12 rounded-xl bg-bg-overlay flex items-center justify-center mx-auto mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-text-muted" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-12 h-12 rounded-full bg-bg-overlay flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           </div>
-          <p className="text-text-subtle font-medium text-sm">No servers found</p>
-          <p className="text-text-muted text-xs mt-1.5 max-w-xs mx-auto">
-            Make sure Contexta is added to your Discord server and you have the right permissions.
+          <h3 className="text-sm font-medium text-text mb-1">No servers found</h3>
+          <p className="text-sm text-text-muted max-w-sm mb-4">
+            Invite Contexta to your Discord server to get started. Once the bot joins, your server will appear here.
           </p>
+          {inviteUrl && (
+            <a
+              href={inviteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Add to Discord
+            </a>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5 animate-stagger">
