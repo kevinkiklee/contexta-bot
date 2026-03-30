@@ -25,6 +25,13 @@ knowledgeRoutes.get('/knowledge/:serverId', async (c) => {
     paramIdx++;
   }
 
+  const status = c.req.query('status');
+  if (status) {
+    conditions.push(`status = $${paramIdx}`);
+    params.push(status);
+    paramIdx++;
+  }
+
   if (cursor) {
     conditions.push(`created_at < $${paramIdx}`);
     params.push(cursor);
@@ -34,7 +41,7 @@ knowledgeRoutes.get('/knowledge/:serverId', async (c) => {
   params.push(limit);
 
   const result = await rawQuery(
-    `SELECT id, server_id, type, title, content, confidence, source_channel_id, source_message_ids, metadata, is_archived, is_pinned, created_at, updated_at
+    `SELECT id, server_id, type, title, content, confidence, status, source_channel_id, source_message_ids, metadata, is_archived, is_pinned, created_at, updated_at
      FROM knowledge_entries
      WHERE ${conditions.join(' AND ')}
      ORDER BY created_at DESC

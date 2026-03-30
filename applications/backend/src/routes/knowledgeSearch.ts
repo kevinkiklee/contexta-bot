@@ -22,6 +22,7 @@ knowledgeSearchRoutes.post('/knowledge/:serverId/search', async (c) => {
      FROM knowledge_entries
      WHERE server_id = $1
        AND is_archived = false
+       AND status = 'published'
        AND confidence >= $2
        AND embedding IS NOT NULL
      ORDER BY embedding <=> $3::vector
