@@ -5,6 +5,7 @@ import { checkServerAdmin } from '@/lib/auth-helpers';
 import { getServerSettings, updateServerModel, getKnowledgeConfig, updateKnowledgeConfig } from '@/lib/queries';
 import { pool } from '@/lib/db';
 import { getSelectedBotId } from '@/lib/bot-cookie';
+import { SavedBanner } from '@/components/saved-banner';
 
 const PROVIDERS = [
   {
@@ -47,9 +48,11 @@ export default async function SettingsPage({
   const isAdmin = await checkServerAdmin(pool, session.user.id, serverId);
   if (!isAdmin) {
     return (
-      <div className="rounded-xl border border-border bg-bg-raised p-8 text-center">
-        <h1 className="text-lg font-bold text-error">Access Denied</h1>
-        <p className="text-text-muted mt-2 text-sm">Only server administrators can access settings.</p>
+      <div className="border border-border rounded-lg p-6 bg-bg-raised flex items-center gap-3">
+        <svg className="w-5 h-5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <p className="text-sm text-text-muted">You need admin permissions to access this page.</p>
       </div>
     );
   }
@@ -62,8 +65,12 @@ export default async function SettingsPage({
   const autoPublishThreshold = (knowledgeConfig?.autoPublishThreshold as number) ?? 0.7;
   const reviewRequired = (knowledgeConfig?.reviewRequired as boolean) ?? false;
 
-  async function handleUpdateKnowledgeConfig(formData: FormData) {
+  async function handleSaveSettings(formData: FormData) {
     'use server';
+    const model = formData.get('model') as string;
+    if (ALL_MODELS.some((m) => m.id === model)) {
+      await updateServerModel(pool, serverId, botId, model);
+    }
     const threshold = parseFloat(formData.get('autoPublishThreshold') as string) || 0.7;
     const review = formData.get('reviewRequired') === 'on';
     await updateKnowledgeConfig(pool, serverId, botId, {
@@ -71,33 +78,28 @@ export default async function SettingsPage({
       reviewRequired: review,
     });
     revalidatePath(`/dashboard/${serverId}/settings`);
-    redirect(`/dashboard/${serverId}/settings`);
-  }
-
-  async function handleUpdateModel(formData: FormData) {
-    'use server';
-    const model = formData.get('model') as string;
-    if (ALL_MODELS.some((m) => m.id === model)) {
-      await updateServerModel(pool, serverId, botId, model);
-    }
-    revalidatePath(`/dashboard/${serverId}/settings`);
-    redirect(`/dashboard/${serverId}/settings`);
+    redirect(`/dashboard/${serverId}/settings?saved=true`);
   }
 
   return (
     <div>
+      <SavedBanner />
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-text-muted text-sm mt-1">Configure your bot for this server</p>
       </div>
 
-      <form action={handleUpdateModel}>
+      <form action={handleSaveSettings}>
         <div className="max-w-lg space-y-6">
+          {/* Model Selection */}
+          <h2 className="text-base font-semibold text-text">AI Model</h2>
+
           {PROVIDERS.map((provider) => (
             <div key={provider.name}>
               <div className="flex items-center gap-2 mb-3">
                 <span className={`w-2 h-2 rounded-full ${provider.color.replace('text-', 'bg-')}`} />
-                <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">{provider.name}</h2>
+                <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">{provider.name}</h3>
               </div>
               <div className="space-y-2">
                 {provider.models.map((model) => (
@@ -137,41 +139,38 @@ export default async function SettingsPage({
             </div>
           ))}
 
+          {/* Knowledge Approval Settings */}
+          <div className="border border-border rounded-lg p-5 bg-bg-raised">
+            <h2 className="text-base font-semibold text-text mb-4">Knowledge Approval</h2>
+            <p className="text-sm text-text-muted mb-4">
+              Control how extracted knowledge entries are published. Entries below the threshold go to a review queue.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text mb-1">Auto-publish threshold</label>
+                <div className="flex items-center gap-3">
+                  <input type="range" name="autoPublishThreshold" min="0" max="1" step="0.1" defaultValue={autoPublishThreshold} className="flex-1" />
+                  <span className="text-sm text-text-muted w-8 text-right">{autoPublishThreshold}</span>
+                </div>
+                <div className="flex justify-between text-xs text-text-muted mt-1">
+                  <span>Review all</span>
+                  <span>Auto-publish all</span>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-text">
+                <input type="checkbox" name="reviewRequired" defaultChecked={reviewRequired} className="rounded border-border" />
+                Require review for all entries (overrides threshold)
+              </label>
+            </div>
+          </div>
+
           <button
             type="submit"
             className="btn-press rounded-xl bg-primary px-5 py-2.5 text-white text-sm font-semibold hover:bg-primary-hover transition shadow-sm shadow-primary/20"
           >
-            Save Changes
+            Save Settings
           </button>
         </div>
-      </form>
-
-      {/* Knowledge Approval Settings */}
-      <form action={handleUpdateKnowledgeConfig} className="mt-8 border border-border rounded-lg p-5 bg-bg-raised">
-        <h2 className="text-base font-semibold text-text mb-4">Knowledge Approval</h2>
-        <p className="text-sm text-text-muted mb-4">
-          Control how extracted knowledge entries are published. Entries below the threshold go to a review queue.
-        </p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-text mb-1">Auto-publish threshold</label>
-            <div className="flex items-center gap-3">
-              <input type="range" name="autoPublishThreshold" min="0" max="1" step="0.1" defaultValue={autoPublishThreshold} className="flex-1" />
-              <span className="text-sm text-text-muted w-8 text-right">{autoPublishThreshold}</span>
-            </div>
-            <div className="flex justify-between text-xs text-text-muted mt-1">
-              <span>Review all</span>
-              <span>Auto-publish all</span>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-text">
-            <input type="checkbox" name="reviewRequired" defaultChecked={reviewRequired} className="rounded border-border" />
-            Require review for all entries (overrides threshold)
-          </label>
-        </div>
-        <button type="submit" className="mt-4 bg-primary text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-primary-hover transition-colors">
-          Save Knowledge Settings
-        </button>
       </form>
     </div>
   );

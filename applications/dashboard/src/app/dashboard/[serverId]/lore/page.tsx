@@ -6,6 +6,7 @@ import { getServerLore, updateServerLore } from '@/lib/queries';
 import { pool } from '@/lib/db';
 import { getSelectedBotId } from '@/lib/bot-cookie';
 import { LoreForm } from './lore-form';
+import { SavedBanner } from '@/components/saved-banner';
 
 export default async function LorePage({
   params,
@@ -19,14 +20,11 @@ export default async function LorePage({
   const isAdmin = await checkServerAdmin(pool, session.user.id, serverId);
   if (!isAdmin) {
     return (
-      <div className="rounded-2xl border border-error/20 bg-error/5 p-8 text-center animate-fade-in">
-        <div className="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center mx-auto mb-4">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-error" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
-        </div>
-        <h1 className="text-lg font-bold text-error mb-1">Access Denied</h1>
-        <p className="text-text-muted text-sm">Only server administrators can edit lore.</p>
+      <div className="border border-border rounded-lg p-6 bg-bg-raised flex items-center gap-3">
+        <svg className="w-5 h-5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <p className="text-sm text-text-muted">You need admin permissions to access this page.</p>
       </div>
     );
   }
@@ -40,11 +38,13 @@ export default async function LorePage({
     if (!text || text.length > 10_000) return;
     await updateServerLore(pool, serverId, botId, text);
     revalidatePath(`/dashboard/${serverId}/lore`);
-    redirect(`/dashboard/${serverId}/lore`);
+    redirect(`/dashboard/${serverId}/lore?saved=true`);
   }
 
   return (
     <div>
+      <SavedBanner />
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Server Lore</h1>
         <p className="text-text-muted text-sm mt-1">Define the rules, themes, and personality for your server</p>
