@@ -11,6 +11,7 @@ import { cacheRoutes } from './routes/cache.js';
 import { messageRoutes } from './routes/messages.js';
 import { knowledgeRoutes } from './routes/knowledge.js';
 import { knowledgeSearchRoutes } from './routes/knowledgeSearch.js';
+import { knowledgeCrudRoutes } from './routes/knowledgeCrud.js';
 import { tagMessagesRoutes } from './routes/cron/tagMessages.js';
 import { extractKnowledgeRoutes } from './routes/cron/extractKnowledge.js';
 import { summarizeChannelsRoutes } from './routes/cron/summarizeChannels.js';
@@ -45,6 +46,7 @@ apiApp.route('/', cacheRoutes);
 apiApp.route('/', messageRoutes);
 apiApp.route('/', knowledgeRoutes);
 apiApp.route('/', knowledgeSearchRoutes);
+apiApp.route('/', knowledgeCrudRoutes);
 app.route('/api', apiApp);
 
 // Error handler
