@@ -97,6 +97,9 @@ importers:
       '@auth/core':
         specifier: ^0.38.0
         version: 0.38.0
+      '@contexta/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@contexta/ui':
         specifier: workspace:*
         version: link:../../packages/ui

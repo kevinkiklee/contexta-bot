@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { backendPost, backendPut, backendGet } from '../lib/backendClient.js';
 import { resolveShortId, confidenceDots } from '../lib/citations.js';
 
@@ -51,18 +51,24 @@ async function handleSearch(interaction: ChatInputCommandInteraction, serverId: 
       return;
     }
 
-    const lines = entries.map((e, i) => {
+    const embed = new EmbedBuilder()
+      .setColor(0x3B82F6)
+      .setTitle(`🔍 Knowledge Search: "${query.length > 200 ? query.slice(0, 197) + '...' : query}"`)
+      .setFooter({ text: `${entries.length} result${entries.length === 1 ? '' : 's'} found` });
+
+    for (const e of entries) {
       const shortId = `KE-${e.id.slice(0, 4)}`;
       const snippet = e.content.length > 120 ? e.content.slice(0, 117) + '...' : e.content;
-      return `${i + 1}. \`${shortId}\` — **${e.title}** (${e.type}, ${confidenceDots(e.confidence)})\n   ${snippet}`;
-    });
+      embed.addFields({
+        name: `${shortId} — ${e.title}`,
+        value: `${e.type} · ${confidenceDots(e.confidence)}\n${snippet}`,
+      });
+    }
 
-    const reply = `🔍 Knowledge Search: "${query}"\n\n${lines.join('\n\n')}\n\n📊 ${entries.length} result${entries.length === 1 ? '' : 's'} found`;
-    const truncated = reply.length > 2000 ? reply.slice(0, 1997) + '...' : reply;
-    await interaction.editReply(truncated);
+    await interaction.editReply({ embeds: [embed] });
   } catch (err) {
     console.error('[knowledge search] Error:', err);
-    await interaction.editReply('Failed to search the knowledge base. Please try again.');
+    await interaction.editReply('Knowledge search is temporarily unavailable. Try again shortly.');
   }
 }
 
@@ -97,7 +103,7 @@ async function handleDelete(interaction: ChatInputCommandInteraction, serverId: 
     await interaction.editReply(`Archived \`KE-${shortHex}\` — **${entry.title}**. Restore from dashboard if needed.`);
   } catch (err) {
     console.error('[knowledge delete] Error:', err);
-    await interaction.editReply('Failed to archive the entry. Please try again.');
+    await interaction.editReply('Couldn\'t archive that entry right now. Try again shortly.');
   }
 }
 
@@ -133,6 +139,6 @@ async function handleCorrect(interaction: ChatInputCommandInteraction, serverId:
     await interaction.editReply(`Updated \`KE-${shortHex}\` — **${entry.title}**. New content saved.`);
   } catch (err) {
     console.error('[knowledge correct] Error:', err);
-    await interaction.editReply('Failed to update the entry. Please try again.');
+    await interaction.editReply('Couldn\'t update that entry right now. Try again shortly.');
   }
 }

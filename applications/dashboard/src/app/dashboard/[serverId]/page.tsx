@@ -5,6 +5,7 @@ import { getServerSettings, getServerChannels } from '@/lib/queries';
 import { pool } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { getSelectedBotId } from '@/lib/bot-cookie';
+import { getModelLabel } from '@contexta/shared';
 import Link from 'next/link';
 
 export default async function ServerOverviewPage({
@@ -40,7 +41,7 @@ export default async function ServerOverviewPage({
             </div>
             <div className="text-[11px] text-text-muted uppercase tracking-wider font-medium">Active Model</div>
           </div>
-          <div className="text-lg font-bold font-[family-name:var(--font-mono)]">{settings?.active_model ?? 'gemini-2.5-flash'}</div>
+          <div className="text-lg font-bold font-[family-name:var(--font-mono)]">{getModelLabel(settings?.active_model ?? 'gemini-2.5-flash')}</div>
         </div>
         <div className="rounded-xl border border-border bg-bg-raised p-5 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 rounded-bl-[40px]" />

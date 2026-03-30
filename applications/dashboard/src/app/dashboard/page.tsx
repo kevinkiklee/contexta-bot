@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getUserServers } from '@/lib/queries';
 import { pool } from '@/lib/db';
 import { getSelectedBotId } from '@/lib/bot-cookie';
+import { getModelLabel } from '@contexta/shared';
 import Link from 'next/link';
 
 const botClientId = process.env.BOT_CLIENT_ID;
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm">{server.server_name || server.server_id}</div>
-                  <div className="text-text-muted text-xs mt-0.5 font-[family-name:var(--font-mono)]">{server.active_model}</div>
+                  <div className="text-text-muted text-xs mt-0.5 font-[family-name:var(--font-mono)]">{getModelLabel(server.active_model ?? '')}</div>
                 </div>
                 <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${
                   server.is_admin

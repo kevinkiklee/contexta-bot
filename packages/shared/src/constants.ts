@@ -26,3 +26,16 @@ export const DISCORD_PERMISSIONS = {
   ADMINISTRATOR: 0x8n,
   MANAGE_GUILD: 0x20n,
 } as const;
+
+const MODEL_LABELS: Record<string, string> = {
+  'gemini-2.5-flash': 'Gemini Flash',
+  'gemini-2.5-pro': 'Gemini Pro',
+  'gpt-4o': 'GPT-4o',
+  'gpt-4o-mini': 'GPT-4o Mini',
+  'claude-3.5-sonnet': 'Claude Sonnet',
+  'claude-3.5-haiku': 'Claude Haiku',
+};
+
+export function getModelLabel(modelId: string): string {
+  return MODEL_LABELS[modelId] ?? modelId;
+}

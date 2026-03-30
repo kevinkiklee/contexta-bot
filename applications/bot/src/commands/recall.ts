@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import { backendPost, backendGet } from '../lib/backendClient.js';
 
@@ -71,10 +71,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       chatHistory: [{ role: 'user', parts: [{ text: `Here is what I found:\n\n${knowledgeParts.join('\n')}\n\nSummarize this knowledge about: ${topic}` }] }],
     });
 
-    const truncated = response.length > 2000 ? response.slice(0, 1997) + '...' : response;
-    await interaction.editReply(truncated);
+    const embed = new EmbedBuilder()
+      .setColor(0x3B82F6)
+      .setTitle(`🔍 Recall: ${topic.length > 200 ? topic.slice(0, 197) + '...' : topic}`)
+      .setDescription(response.length > 4096 ? response.slice(0, 4093) + '...' : response)
+      .setFooter({ text: 'Sources from knowledge base and channel history' });
+
+    await interaction.editReply({ embeds: [embed] });
   } catch (err) {
     console.error('[recall] Error:', err);
-    await interaction.editReply('There was an error searching the knowledge base.');
+    await interaction.editReply('I couldn\'t process that right now. Try again in a moment.');
   }
 }

@@ -1,7 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import { backendPost, backendGet } from '../lib/backendClient.js';
-import { makeCitation, appendCitationFooter } from '../lib/citations.js';
+import { makeCitation, confidenceDots } from '../lib/citations.js';
 import type { KnowledgeCitation } from '@contexta/shared';
 
 export const data = new SlashCommandBuilder()
@@ -66,10 +66,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       chatHistory: [{ role: 'user', parts: [{ text: userQuery }] }],
     });
 
-    const replyText = appendCitationFooter(response, citations);
-    await interaction.editReply(replyText);
+    const embed = new EmbedBuilder()
+      .setColor(0x3B82F6)
+      .setDescription(response.length > 4096 ? response.slice(0, 4093) + '...' : response);
+
+    if (citations.length > 0) {
+      const footerParts = citations.map(
+        (c) => `${c.shortId} (${c.type}, ${confidenceDots(c.confidence)})`
+      );
+      embed.setFooter({ text: `📚 ${footerParts.join(' · ')}` });
+    }
+
+    await interaction.editReply({ embeds: [embed] });
   } catch (err) {
     console.error('[ask] Error:', err);
-    await interaction.editReply('I ran into an issue attempting to process that request.');
+    await interaction.editReply('I couldn\'t process that right now. Try again in a moment.');
   }
 }
