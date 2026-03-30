@@ -87,6 +87,27 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
         }
       } catch { /* use default prompt */ }
 
+      // Retrieve relevant knowledge (Phase 2)
+      let knowledgeBlock = '';
+      try {
+        const { entries } = await (deps.postBackend || backendPost)<{
+          entries: { type: string; title: string; content: string; confidence: number }[];
+          related: unknown[];
+        }>(`/api/knowledge/${message.guildId}/search`, { query: message.content, limit: 5, minConfidence: 0.3 });
+
+        if (entries.length > 0) {
+          const lines = entries.map((e: { type: string; title: string; content: string; confidence: number }) => {
+            const conf = e.confidence >= 0.7 ? 'high confidence' : 'moderate confidence';
+            return `- ${e.type} (${conf}): "${e.title}" — ${e.content}`;
+          });
+          knowledgeBlock = `\n\n[RELEVANT KNOWLEDGE]\n${lines.join('\n')}\n[/RELEVANT KNOWLEDGE]\n\nWhen relevant, actively reference this knowledge. Use phrases like "By the way, this relates to..." or "Based on a previous discussion..."`;
+        }
+      } catch {
+        // Knowledge retrieval is best-effort
+      }
+
+      systemPrompt += knowledgeBlock;
+
       const { response } = await post<{ response: string }>('/api/chat', {
         serverId,
         systemPrompt,
