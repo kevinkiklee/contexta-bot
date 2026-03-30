@@ -69,6 +69,24 @@ extractKnowledgeRoutes.post('/extract-knowledge', async (c) => {
 
   const chunks = groupIntoChunks(result.rows as TaggedMessage[]);
 
+  // Cache knowledge configs per server
+  const configCache = new Map<string, { autoPublishThreshold: number; reviewRequired: boolean }>();
+
+  async function getServerConfig(serverId: string) {
+    if (configCache.has(serverId)) return configCache.get(serverId)!;
+    const result = await rawQuery(
+      `SELECT knowledge_config FROM server_settings WHERE server_id = $1 LIMIT 1`,
+      [serverId]
+    );
+    const config = result.rows[0]?.knowledge_config as Record<string, unknown> | null;
+    const parsed = {
+      autoPublishThreshold: (config?.autoPublishThreshold as number) ?? 0.7,
+      reviewRequired: (config?.reviewRequired as boolean) ?? false,
+    };
+    configCache.set(serverId, parsed);
+    return parsed;
+  }
+
   for (const chunk of chunks) {
     if (!hasKnowledgeSignals(chunk)) continue;
 
@@ -102,11 +120,18 @@ extractKnowledgeRoutes.post('/extract-knowledge', async (c) => {
         const embedding = await ai.generateEmbedding(`${entry.title}: ${entry.content}`);
         const messageIds = chunk.map(m => m.id);
 
+        const serverConfig = await getServerConfig(serverId);
+        const entryStatus = serverConfig.reviewRequired
+          ? 'pending_review'
+          : entry.confidence >= serverConfig.autoPublishThreshold
+            ? 'published'
+            : 'pending_review';
+
         const insertResult = await rawQuery(
-          `INSERT INTO knowledge_entries (server_id, type, title, content, confidence, source_channel_id, source_message_ids, embedding)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::vector)
+          `INSERT INTO knowledge_entries (server_id, type, title, content, confidence, source_channel_id, source_message_ids, embedding, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::vector, $9)
            RETURNING id`,
-          [serverId, entry.type, entry.title, entry.content, entry.confidence, channelId, messageIds, `[${embedding.join(',')}]`]
+          [serverId, entry.type, entry.title, entry.content, entry.confidence, channelId, messageIds, `[${embedding.join(',')}]`, entryStatus]
         );
 
         const newId = insertResult.rows[0]?.id;
