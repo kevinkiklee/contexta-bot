@@ -115,12 +115,14 @@ export const knowledgeEntries = pgTable('knowledge_entries', {
   metadata: jsonb('metadata').default({}),
   isArchived: boolean('is_archived').notNull().default(false),
   isPinned: boolean('is_pinned').notNull().default(false),
+  status: varchar('status', { length: 20 }).notNull().default('published'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_ke_server_type').on(table.serverId, table.type),
   index('idx_ke_confidence').on(table.serverId, table.confidence),
   index('idx_ke_created').on(table.serverId, table.createdAt),
+  index('idx_ke_status').on(table.serverId, table.status),
 ]);
 
 export const knowledgeEntryLinks = pgTable('knowledge_entry_links', {

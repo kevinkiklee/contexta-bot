@@ -91,6 +91,7 @@ export const DEFAULT_PERSONALITY: Personality = {
 export type KnowledgeEntryType = 'topic' | 'decision' | 'entity' | 'action_item' | 'reference';
 export type RelationshipType = 'relates_to' | 'supersedes' | 'part_of' | 'led_to';
 export type LinkCreator = 'pipeline' | 'admin' | 'correction';
+export type KnowledgeEntryStatus = 'published' | 'pending_review' | 'rejected';
 
 export interface KnowledgeEntry {
   id: string;
@@ -104,6 +105,7 @@ export interface KnowledgeEntry {
   metadata: Record<string, unknown>;
   isArchived: boolean;
   isPinned: boolean;
+  status: KnowledgeEntryStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -154,6 +156,8 @@ export interface KnowledgeConfig {
   summaryInterval: 'daily' | 'weekly';
   crossChannelEnabled: boolean;
   injectionAggressiveness: 'conservative' | 'moderate' | 'assertive';
+  autoPublishThreshold: number;
+  reviewRequired: boolean;
 }
 
 export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
@@ -161,7 +165,17 @@ export const DEFAULT_KNOWLEDGE_CONFIG: KnowledgeConfig = {
   summaryInterval: 'daily',
   crossChannelEnabled: true,
   injectionAggressiveness: 'assertive',
+  autoPublishThreshold: 0.7,
+  reviewRequired: false,
 };
+
+export interface KnowledgeCitation {
+  shortId: string;
+  entryId: string;
+  type: string;
+  confidence: number;
+  title: string;
+}
 
 export function personalityToPrompt(p: Personality): string {
   const parts: string[] = [];
