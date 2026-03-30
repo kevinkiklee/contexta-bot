@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import { backendPost, backendGet } from '../lib/backendClient.js';
+import { makeCitation, appendCitationFooter } from '../lib/citations.js';
+import type { KnowledgeCitation } from '@contexta/shared';
 
 export const data = new SlashCommandBuilder()
   .setName('ask')
@@ -37,14 +39,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Retrieve relevant knowledge
     let knowledgeBlock = '';
+    let citations: KnowledgeCitation[] = [];
     try {
       const { entries } = await backendPost<{
-        entries: { type: string; title: string; content: string; confidence: number }[];
+        entries: { id: string; type: string; title: string; content: string; confidence: number }[];
         related: unknown[];
       }>(`/api/knowledge/${interaction.guildId}/search`, { query: userQuery, limit: 5, minConfidence: 0.3 });
 
       if (entries.length > 0) {
-        const lines = entries.map((e: { type: string; title: string; content: string; confidence: number }) => {
+        citations = entries.map((e: { id: string; type: string; confidence: number; title: string }) => makeCitation(e));
+        const lines = entries.map((e: { id: string; type: string; title: string; content: string; confidence: number }) => {
           const conf = e.confidence >= 0.7 ? 'high confidence' : 'moderate confidence';
           return `- ${e.type} (${conf}): "${e.title}" — ${e.content}`;
         });
@@ -62,11 +66,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       chatHistory: [{ role: 'user', parts: [{ text: userQuery }] }],
     });
 
-    if (response.length > 2000) {
-      await interaction.editReply(response.substring(0, 2000));
-    } else {
-      await interaction.editReply(response);
-    }
+    const replyText = appendCitationFooter(response, citations);
+    await interaction.editReply(replyText);
   } catch (err) {
     console.error('[ask] Error:', err);
     await interaction.editReply('I ran into an issue attempting to process that request.');

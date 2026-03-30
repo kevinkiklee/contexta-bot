@@ -66,6 +66,9 @@ importers:
       '@contexta/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@contexta/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       discord.js:
         specifier: ^14.14.1
         version: 14.25.1

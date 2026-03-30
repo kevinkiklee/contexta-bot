@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@contexta/db": "workspace:*",
+    "@contexta/shared": "workspace:*",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
     "redis": "^4.6.13"

@@ -3,6 +3,8 @@ import { redisClient } from '../utils/redis.js';
 import { BOT_SENTINEL, sanitizeMessageContent, formatUserMessage } from '../utils/messageGuard.js';
 import { isRateLimited } from '../utils/rateLimiter.js';
 import { backendPost, backendGet } from '../lib/backendClient.js';
+import { makeCitation, appendCitationFooter } from '../lib/citations.js';
+import type { KnowledgeCitation } from '@contexta/shared';
 
 export interface MessageCreateDeps {
   redis: {
@@ -89,14 +91,16 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
 
       // Retrieve relevant knowledge (Phase 2)
       let knowledgeBlock = '';
+      let citations: KnowledgeCitation[] = [];
       try {
         const { entries } = await (deps.postBackend || backendPost)<{
-          entries: { type: string; title: string; content: string; confidence: number }[];
+          entries: { id: string; type: string; title: string; content: string; confidence: number }[];
           related: unknown[];
         }>(`/api/knowledge/${message.guildId}/search`, { query: message.content, limit: 5, minConfidence: 0.3 });
 
         if (entries.length > 0) {
-          const lines = entries.map((e: { type: string; title: string; content: string; confidence: number }) => {
+          citations = entries.map((e: { id: string; type: string; confidence: number; title: string }) => makeCitation(e));
+          const lines = entries.map((e: { id: string; type: string; title: string; content: string; confidence: number }) => {
             const conf = e.confidence >= 0.7 ? 'high confidence' : 'moderate confidence';
             return `- ${e.type} (${conf}): "${e.title}" — ${e.content}`;
           });
@@ -114,7 +118,8 @@ export async function execute(message: Message, deps: MessageCreateDeps = defaul
         chatHistory,
       });
 
-      await message.reply(response);
+      const replyText = appendCitationFooter(response, citations);
+      await message.reply(replyText);
 
       const botFormattedMsg = `${BOT_SENTINEL}[System/Contexta]: ${response}`;
       await deps.redis.rPush(redisKey, botFormattedMsg);
