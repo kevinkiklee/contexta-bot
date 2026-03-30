@@ -51,7 +51,7 @@ pnpm --filter @contexta/backend <command>
 
 ## Testing
 
-- `pnpm test:bot` — bot unit + component tests (Vitest, 67 tests)
+- `pnpm test:bot` — bot unit + component tests (Vitest, 68 tests)
 - `pnpm test:dashboard` — dashboard tests (Vitest, 24 tests)
 - `pnpm --filter @contexta/bot test:integration` — integration tests (requires `TEST_DATABASE_URL`)
 - Bot tests: `applications/bot/src/tests/{unit,component,integration}/`
@@ -70,6 +70,7 @@ Key variables:
 - `REDIS_URL` — Redis connection string
 - `DISABLE_DB_SSL` — Set `true` for Railway internal Postgres
 - `BOT_API_KEY` — Shared secret between bot and backend
+- `CRON_SECRET` — Shared secret for cron pipeline endpoints (separate from `BOT_API_KEY`)
 - `BACKEND_URL` — Backend URL the bot calls (e.g. `http://localhost:8080` on Railway)
 - `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` — OAuth app for dashboard login
 - `AUTH_SECRET` — NextAuth session encryption secret
@@ -87,19 +88,31 @@ Events: `messageCreate` (chat + Redis history), `interactionCreate` (slash comma
 
 Tiered memory: Redis (rolling window of 50 messages/channel) → PostgreSQL + pgvector (768-dim semantic vectors).
 
-Slash commands in `src/commands/`: ask, summarize, recall, settings, lore, profile.
+Slash commands in `src/commands/`: ask, summarize, recall, catchup, settings, lore, profile.
+
+The `/catchup` command generates personalized missed-content digests for a given time range (default 24h). It fetches channel summaries and the user's expertise topics to produce a tailored briefing.
+
+All commands (`/ask`, `/recall`) and `@mention` responses inject relevant knowledge context from the knowledge base via semantic search before generating replies. Knowledge injection is best-effort — failures don't break the response.
 
 Bot sends `X-Bot-Id` header on all backend API calls via `src/lib/backendClient.ts`.
 
 ### Backend (applications/backend/)
 
-Hono API server. Routes: `/api/chat`, `/api/summarize`, `/api/servers/:id/*`, `/api/cache/*`, `/api/attachments/*`, `/api/embeddings/*`. All `server_settings` queries are scoped by `bot_id` from the `X-Bot-Id` header.
+Hono API server. Routes: `/api/chat`, `/api/summarize`, `/api/servers/:id/*`, `/api/cache/*`, `/api/attachments/*`, `/api/embeddings/*`, `/api/knowledge/:serverId/*`, `/api/summaries/:serverId`, `/api/expertise/:serverId`. All `server_settings` queries are scoped by `bot_id` from the `X-Bot-Id` header.
 
-LLM providers in `src/services/llm/`: GeminiProvider, OpenAIProvider, AnthropicProvider with providerRegistry.
+LLM providers in `src/services/llm/`: GeminiProvider, OpenAIProvider, AnthropicProvider with providerRegistry. LLM prompt templates for knowledge pipelines in `src/services/llm/prompts.ts`.
 
-Auth: `BOT_API_KEY` bearer token via middleware.
+Two-tier auth: `botAuth()` (`BOT_API_KEY`) for normal API calls, `cronAuth()` (`CRON_SECRET`) for cron routes.
 
-Cron endpoints (under `/api/cron`): `/cron/embeddings` (channel memory), `/cron/message-embeddings` (message-level embeddings for semantic search).
+Cron endpoints (under `/api/cron`):
+- `/cron/embeddings` — channel memory embeddings
+- `/cron/message-embeddings` — message-level embeddings for semantic search
+- `/cron/tag-messages` — Pipeline 1: classify messages with lightweight tags (topics, decisions, action items)
+- `/cron/extract-knowledge` — Pipeline 2: extract structured knowledge entries with graph relationships from tagged messages
+- `/cron/summarize-channels` — Pipeline 3: generate daily structured channel summaries with embeddings
+- `/cron/infer-profiles` — Pipeline 4: infer per-user expertise topics and communication style from message history
+
+Knowledge search: `POST /api/knowledge/:serverId/search` — semantic vector search across knowledge entries with graph traversal for related entries. Used by commands for context injection.
 
 ### Dashboard (applications/dashboard/)
 
@@ -122,19 +135,26 @@ Next.js 15 marketing site scaffold. Placeholder content.
 ### Database (packages/db/)
 
 Drizzle ORM schema matching the PostgreSQL tables. Key tables:
-- `server_settings` — composite PK `(server_id, bot_id)`, tracks per-bot guild membership via `is_active`
+- `server_settings` — composite PK `(server_id, bot_id)`, tracks per-bot guild membership via `is_active`. Has `knowledge_config` (JSONB) for extraction/summarization settings.
 - `user_servers` — user's Discord guild memberships with `server_name` and `is_admin`
-- `messages` — durable message store with `search_vec` (tsvector) and `embedding` (pgvector). Written by bot on every message.
+- `messages` — durable message store with `search_vec` (tsvector), `embedding` (pgvector), and `tags` (JSONB). Written by bot on every message.
 - `channel_memory_vectors` — pgvector embeddings for channel-level semantic search
 - `server_members` / `global_users` — user profiles and preferences
+- `knowledge_entries` — structured knowledge units (topic, decision, entity, action_item, reference) with confidence scores and pgvector embeddings (HNSW index)
+- `knowledge_entry_links` — graph relationships between knowledge entries (relates_to, supersedes, part_of, led_to)
+- `channel_summaries` — daily structured summaries per channel with topics, decisions, open questions, action items, and embeddings
+- `user_expertise` — per-user topic expertise scores (0.0–1.0) inferred from message history
+- `reports` — generated reports (scaffolding for future use)
 
 Custom pgvector column type for `vector(768)`. Exports typed Drizzle client and raw query helper.
 
-Migrations in `src/migrations/` — run manually via psql.
+Migrations in `src/migrations/` — run manually via psql. Notable migrations:
+- `0004_add_knowledge_tables.sql` — knowledge_entries, knowledge_entry_links, channel_summaries, user_expertise, reports
+- `0005_add_message_tags_and_knowledge_config.sql` — adds tags to messages and knowledge_config to server_settings
 
 ### Shared (packages/shared/)
 
-Cross-app types, constants (model names, limits), and Zod validation schemas.
+Cross-app types, constants (model names, limits), and Zod validation schemas. Includes knowledge system types: `KnowledgeEntry`, `KnowledgeEntryLink`, `ChannelSummary`, `UserExpertise`, `KnowledgeConfig`.
 
 ### UI (packages/ui/)
 

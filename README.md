@@ -1,6 +1,6 @@
 # Contexta Bot
 
-AI-powered Discord bot with long-term memory, multi-provider LLM support, and a web dashboard.
+AI-powered Discord bot with long-term memory, autonomous knowledge extraction, and a web dashboard.
 
 ## Architecture
 
@@ -20,10 +20,12 @@ pnpm workspace monorepo with 4 apps and 3 packages:
 
 - **Multi-provider LLM**: Gemini, OpenAI, and Anthropic via pluggable provider registry
 - **Tiered memory**: Redis (50-message rolling window) + PostgreSQL/pgvector (768-dim semantic vectors)
+- **Autonomous knowledge extraction**: 4-stage cron pipeline (message tagging, knowledge extraction, channel summarization, profile inference) builds a structured knowledge graph from conversations
+- **Knowledge-augmented responses**: All commands and @mention replies are enriched with relevant knowledge context via semantic search + graph traversal
 - **Context caching**: Server lore cached via Gemini Context Caching API
-- **User profiles**: Per-server user context and preferences (JSONB)
+- **User profiles**: Per-server user context, preferences (JSONB), and inferred expertise topics
 - **Multi-bot dashboard**: Switch between dev/prod bot instances from the same UI
-- **Slash commands**: /ask, /summarize, /recall, /settings, /lore, /profile
+- **Slash commands**: /ask, /summarize, /recall, /catchup, /settings, /lore, /profile
 
 ## Prerequisites
 
@@ -53,7 +55,7 @@ pnpm dev:website       # Website on localhost:5001
 
 ```bash
 pnpm test              # All tests
-pnpm test:bot          # Bot tests (67 tests)
+pnpm test:bot          # Bot tests (68 tests)
 pnpm test:dashboard    # Dashboard tests (24 tests)
 ```
 
@@ -76,6 +78,7 @@ See `.env.example` for the full list with documentation. Key variables:
 
 - `DISCORD_TOKEN` / `BOT_CLIENT_ID` — Bot credentials (per instance)
 - `DATABASE_URL` / `REDIS_URL` — Infrastructure
+- `CRON_SECRET` — Shared secret for cron pipeline endpoints (separate from `BOT_API_KEY`)
 - `BOTS` — Multi-bot dashboard config: `Dev:CLIENT_ID_1,Prod:CLIENT_ID_2`
 
 ## Tech Stack
