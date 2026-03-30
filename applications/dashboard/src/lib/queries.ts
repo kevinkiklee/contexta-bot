@@ -209,3 +209,180 @@ export async function getMessageChannels(
     channel_name: r.channel_id, // Will be enriched with Redis channel names in the page
   }));
 }
+
+// --- Knowledge queries ---
+
+export interface KnowledgeEntryRow {
+  id: string;
+  server_id: string;
+  type: string;
+  title: string;
+  content: string;
+  confidence: number;
+  status: string;
+  source_channel_id: string | null;
+  is_archived: boolean;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeStats {
+  published: number;
+  pending_review: number;
+  rejected: number;
+  archived: number;
+  avg_confidence: number;
+  created_this_week: number;
+}
+
+export interface KnowledgeFilters {
+  serverId: string;
+  status?: string;
+  type?: string;
+  search?: string;
+  pinnedOnly?: boolean;
+  before?: string;
+  limit?: number;
+}
+
+export async function getKnowledgeEntries(
+  db: DbClient,
+  filters: KnowledgeFilters
+): Promise<{ entries: KnowledgeEntryRow[]; nextCursor: string | null }> {
+  const { serverId, status, type, search, pinnedOnly, before, limit = 20 } = filters;
+
+  const conditions: string[] = ['server_id = $1', 'is_archived = false'];
+  const params: unknown[] = [serverId];
+  let idx = 2;
+
+  if (status) {
+    conditions.push(`status = $${idx++}`);
+    params.push(status);
+  }
+  if (type) {
+    conditions.push(`type = $${idx++}`);
+    params.push(type);
+  }
+  if (pinnedOnly) {
+    conditions.push('is_pinned = true');
+  }
+  if (before) {
+    conditions.push(`created_at < $${idx++}`);
+    params.push(before);
+  }
+  if (search) {
+    conditions.push(`(title ILIKE $${idx} OR content ILIKE $${idx})`);
+    params.push(`%${search}%`);
+    idx++;
+  }
+
+  params.push(limit + 1);
+
+  const result = await db.query(
+    `SELECT id, server_id, type, title, content, confidence, status, source_channel_id, is_archived, is_pinned, created_at, updated_at
+     FROM knowledge_entries
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY created_at DESC
+     LIMIT $${idx}`,
+    params
+  );
+
+  const rows = result.rows as unknown as KnowledgeEntryRow[];
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
+  return {
+    entries: rows,
+    nextCursor: hasMore && rows.length > 0 ? rows[rows.length - 1].created_at : null,
+  };
+}
+
+export async function getKnowledgeStats(db: DbClient, serverId: string): Promise<KnowledgeStats> {
+  const result = await db.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'published' AND NOT is_archived)::int AS published,
+       COUNT(*) FILTER (WHERE status = 'pending_review' AND NOT is_archived)::int AS pending_review,
+       COUNT(*) FILTER (WHERE status = 'rejected' AND NOT is_archived)::int AS rejected,
+       COUNT(*) FILTER (WHERE is_archived)::int AS archived,
+       COALESCE(ROUND(AVG(confidence)::numeric, 2), 0)::float AS avg_confidence,
+       COUNT(*) FILTER (WHERE created_at > now() - interval '7 days' AND NOT is_archived)::int AS created_this_week
+     FROM knowledge_entries
+     WHERE server_id = $1`,
+    [serverId]
+  );
+
+  return (result.rows[0] as unknown as KnowledgeStats) ?? {
+    published: 0, pending_review: 0, rejected: 0, archived: 0, avg_confidence: 0, created_this_week: 0,
+  };
+}
+
+export async function approveKnowledgeEntry(db: DbClient, serverId: string, entryId: string): Promise<void> {
+  await db.query(
+    `UPDATE knowledge_entries SET status = 'published', updated_at = now() WHERE server_id = $1 AND id = $2`,
+    [serverId, entryId]
+  );
+}
+
+export async function rejectKnowledgeEntry(db: DbClient, serverId: string, entryId: string): Promise<void> {
+  await db.query(
+    `UPDATE knowledge_entries SET status = 'rejected', updated_at = now() WHERE server_id = $1 AND id = $2`,
+    [serverId, entryId]
+  );
+}
+
+export async function toggleKnowledgePin(db: DbClient, serverId: string, entryId: string): Promise<void> {
+  await db.query(
+    `UPDATE knowledge_entries SET is_pinned = NOT is_pinned, updated_at = now() WHERE server_id = $1 AND id = $2`,
+    [serverId, entryId]
+  );
+}
+
+export async function toggleKnowledgeArchive(db: DbClient, serverId: string, entryId: string): Promise<void> {
+  await db.query(
+    `UPDATE knowledge_entries SET is_archived = NOT is_archived, updated_at = now() WHERE server_id = $1 AND id = $2`,
+    [serverId, entryId]
+  );
+}
+
+export async function updateKnowledgeEntry(
+  db: DbClient,
+  serverId: string,
+  entryId: string,
+  data: { title?: string; content?: string; type?: string; confidence?: number }
+): Promise<void> {
+  const sets: string[] = ['updated_at = now()'];
+  const params: unknown[] = [serverId, entryId];
+  let idx = 3;
+
+  if (data.title !== undefined) { sets.push(`title = $${idx++}`); params.push(data.title); }
+  if (data.content !== undefined) { sets.push(`content = $${idx++}`); params.push(data.content); }
+  if (data.type !== undefined) { sets.push(`type = $${idx++}`); params.push(data.type); }
+  if (data.confidence !== undefined) { sets.push(`confidence = $${idx++}`); params.push(data.confidence); }
+
+  await db.query(
+    `UPDATE knowledge_entries SET ${sets.join(', ')} WHERE server_id = $1 AND id = $2`,
+    params
+  );
+}
+
+export async function getKnowledgeConfig(db: DbClient, serverId: string, botId: string) {
+  const result = await db.query(
+    `SELECT knowledge_config FROM server_settings WHERE server_id = $1 AND bot_id = $2`,
+    [serverId, botId]
+  );
+  return (result.rows[0] as { knowledge_config: Record<string, unknown> } | undefined)?.knowledge_config ?? null;
+}
+
+export async function updateKnowledgeConfig(
+  db: DbClient,
+  serverId: string,
+  botId: string,
+  config: { autoPublishThreshold: number; reviewRequired: boolean }
+): Promise<void> {
+  await db.query(
+    `UPDATE server_settings
+     SET knowledge_config = COALESCE(knowledge_config, '{}'::jsonb) || $3::jsonb
+     WHERE server_id = $1 AND bot_id = $2`,
+    [serverId, botId, JSON.stringify(config)]
+  );
+}
