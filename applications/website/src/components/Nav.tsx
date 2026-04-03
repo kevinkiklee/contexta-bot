@@ -1,7 +1,7 @@
 import AddToDiscordButton from './AddToDiscordButton';
 
 export const DISCORD_INVITE = 'https://discord.com/oauth2/authorize?client_id=1485441632835866786&permissions=274877910016&scope=bot+applications.commands';
-export const DASHBOARD_URL = 'https://contexta-bot.vercel.app';
+export const DASHBOARD_URL = 'https://dashboard.contexta-bot.iser.io';
 
 export default function Nav() {
   return (
